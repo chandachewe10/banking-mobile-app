@@ -1,0 +1,8 @@
+// This is a placeholder file to ensure the assets directory exists
+// Replace with actual icon files in production
+
+The following files should be placed in this directory:
+- icon.png
+- splash.png
+- adaptive-icon.png
+- favicon.png

@@ -1,0 +1,15 @@
+# Ignore Expo and TS config
+.eslintrc.json
+app.json
+tsconfig.json
+app.config.js
+package.json
+
+# Ignore all JSON/jsonc files
+**/*.json
+**/*.jsonc
+
+# Ignore config files
+babel.config.js
+metro.config.js
+*.config.js

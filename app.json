@@ -1,0 +1,10 @@
+{
+  "expo":{
+    "sdkVersion": "52.0.0",
+    "name": "KYC Self-Onboarding",
+    "slug": "kyc-self-onboarding",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png"
+  }
+}
