@@ -12,8 +12,15 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { Picker } from '@react-native-picker/picker';
+import { countries, provincesByCountry, districtsByProvince } from './data/locations';
+
+
+  
+
 
 export default function BiodataScreen() {
+
+
   const navigation = useNavigation();
   const theme = useTheme();
   
@@ -28,14 +35,22 @@ export default function BiodataScreen() {
     phoneNumber: '',
     email: '',
     address: '',
-    city: '',
-    state: '',
+    district: '',
+    province: '',
+    country:'',
+    maritalStatus:'',
     zipCode: '',
     occupation: '',
     employer: '',
+    employeeNumber: '',
+    employerNumber: '',
+    employerAddress: '',
+    employeeStartDate: '',
+    employerEmail: '',
     monthlyIncome: '',
     bankName: '',
     branchName: '',
+    branchCode: '',
     accountNumber: ''
   });
 
@@ -51,6 +66,13 @@ export default function BiodataScreen() {
     const required = ['firstName', 'lastName', 'dateOfBirth', 'phoneNumber', 'email', 'address'];
     return required.every(field => formData[field].trim() !== '');
   };
+const provinces = formData.country ? provincesByCountry[formData.country] || [] : [];
+const districts = formData.province ? districtsByProvince[formData.province] || [] : [];
+
+const [selectedCountry, setSelectedCountry] = useState('');
+const [selectedProvince, setSelectedProvince] = useState('');
+const [selectedDistrict, setSelectedDistrict] = useState('');
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -88,32 +110,47 @@ export default function BiodataScreen() {
           />
 
            <Text style={styles.label}>Gender *</Text>
-           <View style={[styles.input, { borderColor: theme.borderColor, padding: 0 }]}>
+         
            <Picker
            selectedValue={formData.gender}
            onValueChange={(value) => handleInputChange('gender', value)}
-           style={{ height: 50 }}
+           style={[styles.input, { borderColor: theme.borderColor }]}
            >
           <Picker.Item label="Select Gender" value="" />
           <Picker.Item label="Male" value="male" />
           <Picker.Item label="Female" value="female" />
          </Picker>
-          </View>
+        
 
-        <Text style={styles.label}>Title *</Text>
-     <View style={[styles.input, { borderColor: theme.borderColor, padding: 0 }]}>
-  <Picker
-    selectedValue={formData.title}
-    onValueChange={(value) => handleInputChange('title', value)}
-    style={{ height: 50 }}
-  >
-    <Picker.Item label="Select Title" value="" />
-    <Picker.Item label="Mr" value="Mr" />
-    <Picker.Item label="Ms" value="Ms" />
-    <Picker.Item label="Mrs" value="Mrs" />
-    <Picker.Item label="Doctor" value="Doc" />
-  </Picker>
-</View>
+         <Text style={styles.label}>Title *</Text>
+        
+         <Picker
+         selectedValue={formData.title}
+         onValueChange={(value) => handleInputChange('title', value)}
+        style={[styles.input, { borderColor: theme.borderColor }]}
+         >
+         <Picker.Item label="Select Title" value="" />
+         <Picker.Item label="Mr" value="Mr" />
+         <Picker.Item label="Ms" value="Ms" />
+         <Picker.Item label="Mrs" value="Mrs" />
+         <Picker.Item label="Doctor" value="Doc" />
+         </Picker>
+
+
+         <Text style={styles.label}>Marital Status *</Text>
+         
+         <Picker
+          selectedValue={formData.maritalStatus}
+          onValueChange={(value) => handleInputChange('maritalStatus', value)}
+         style={[styles.input, { borderColor: theme.borderColor }]}
+          >
+          <Picker.Item label="Select Marital Status" value="" />
+          <Picker.Item label="married" value="Married" />
+          <Picker.Item label="single" value="Single" />
+          <Picker.Item label="divorced" value="Divorced" />
+          <Picker.Item label="widowed" value="Widowed" />
+         </Picker>
+       
 
 
 
@@ -132,10 +169,10 @@ export default function BiodataScreen() {
             value={formData.citizenId}
             onChangeText={(value) => handleInputChange('dateOfBirth', value)}
           />
-        </View>
+        
         
 
-        <View style={[styles.section, { backgroundColor: theme.cardBackgroundColor }]}>
+       
           <Text style={[styles.sectionTitle, { color: theme.textColor }]}>Contact Information</Text>
           
           <Text style={styles.label}>Phone Number *</Text>
@@ -147,15 +184,76 @@ export default function BiodataScreen() {
             keyboardType="phone-pad"
           />
 
-          <Text style={styles.label}>Email *</Text>
-          <TextInput
+        
+
+
+
+
+      {/* Country Picker */}
+      <Text style={styles.label}>Country *</Text>
+      <View>
+        <Picker
+        style={[styles.input, { borderColor: theme.borderColor }]}
+          selectedValue={formData.country}
+          onValueChange={(value) => {
+            handleInputChange('country', value);
+            // Reset dependent selects
+            handleInputChange('province', '');
+            handleInputChange('district', '');
+          }}
+        >
+          {countries.map(({ label, value }) => (
+            <Picker.Item key={value} label={label} value={value} />
+          ))}
+        </Picker>
+      </View>
+
+      {/* Province Picker */}
+      {provinces.length > 0 && (
+        <>
+          <Text style={styles.label}>Province *</Text>
+          <View>
+            <Picker
             style={[styles.input, { borderColor: theme.borderColor }]}
-            placeholder="Enter your email"
-            value={formData.email}
-            onChangeText={(value) => handleInputChange('email', value)}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+              selectedValue={formData.province}
+              onValueChange={(value) => {
+                handleInputChange('province', value);
+                // Reset district when province changes
+                handleInputChange('district', '');
+              }}
+            >
+              <Picker.Item label="Select Province" value="" />
+              {provinces.map(({ label, value }) => (
+                <Picker.Item key={value} label={label} value={value} />
+              ))}
+            </Picker>
+          </View>
+        </>
+      )}
+
+      {/* District Picker */}
+      {districts.length > 0 && (
+        <>
+          <Text style={styles.label}>District *</Text>
+          <View>
+            <Picker
+            style={[styles.input, { borderColor: theme.borderColor }]}
+              selectedValue={formData.district}
+              onValueChange={(value) => handleInputChange('district', value)}
+            >
+              <Picker.Item label="Select District" value="" />
+              {districts.map(({ label, value }) => (
+                <Picker.Item key={value} label={label} value={value} />
+              ))}
+            </Picker>
+          </View>
+        </>
+      )}
+   
+
+
+        
+
 
           <Text style={styles.label}>Address *</Text>
           <TextInput
@@ -166,13 +264,7 @@ export default function BiodataScreen() {
             multiline
           />
 
-          <Text style={styles.label}>District</Text>
-          <TextInput
-            style={[styles.input, { borderColor: theme.borderColor }]}
-            placeholder="Enter your District"
-            value={formData.city}
-            onChangeText={(value) => handleInputChange('city', value)}
-          />
+    
         </View>
 
         <View style={[styles.section, { backgroundColor: theme.cardBackgroundColor }]}>
@@ -193,6 +285,48 @@ export default function BiodataScreen() {
             value={formData.employer}
             onChangeText={(value) => handleInputChange('employer', value)}
           />
+
+           <Text style={styles.label}>Employer number</Text>
+          <TextInput
+            style={[styles.input, { borderColor: theme.borderColor }]}
+            placeholder="Enter your employer number"
+            value={formData.employerNumber}
+            onChangeText={(value) => handleInputChange('employerNumber', value)}
+          />
+
+
+           <Text style={styles.label}>Employer Address</Text>
+          <TextInput
+            style={[styles.input, { borderColor: theme.borderColor }]}
+            placeholder="Enter your employer physical address"
+            value={formData.employerAddress}
+            onChangeText={(value) => handleInputChange('employerAddress', value)}
+          />
+
+          <Text style={styles.label}>Employer Email</Text>
+          <TextInput
+            style={[styles.input, { borderColor: theme.borderColor }]}
+            placeholder="Enter your employer email"
+            value={formData.employerEmail}
+            onChangeText={(value) => handleInputChange('employerEmail', value)}
+          />
+          
+           <Text style={styles.label}>Employee number</Text>
+          <TextInput
+            style={[styles.input, { borderColor: theme.borderColor }]}
+            placeholder="Enter your employee number"
+            value={formData.employeeNumber}
+            onChangeText={(value) => handleInputChange('employee_number', value)}
+          />
+
+            <Text style={styles.label}>Employee Start date</Text>
+          <TextInput
+            style={[styles.input, { borderColor: theme.borderColor }]}
+            placeholder="DD/MM/YYYY"
+            value={formData.employeeStartDate}
+            onChangeText={(value) => handleInputChange('employeeStartDate', value)}
+          />
+
 
           <Text style={styles.label}>Monthly Income</Text>
           <TextInput
@@ -222,6 +356,23 @@ export default function BiodataScreen() {
             placeholder="Enter Branch Name"
             value={formData.branchName}
             onChangeText={(value) => handleInputChange('branchName', value)}
+          />
+
+           <Text style={styles.label}>Branch Code</Text>
+          <TextInput
+            style={[styles.input, { borderColor: theme.borderColor }]}
+            placeholder="Enter Branch Code"
+            value={formData.branchCode}
+            onChangeText={(value) => handleInputChange('branchCode', value)}
+          />
+
+
+          <Text style={styles.label}>Account type</Text>
+          <TextInput
+            style={[styles.input, { borderColor: theme.borderColor }]}
+            placeholder="Enter Account type"
+            value={formData.branchCode}
+            onChangeText={(value) => handleInputChange('branchCode', value)}
           />
 
           <Text style={styles.label}>Bank Account Number *</Text>
@@ -322,5 +473,12 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 14,
     color: '#888',
+  },
+
+   pickerWrapper: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    overflow: 'hidden',
   },
 });

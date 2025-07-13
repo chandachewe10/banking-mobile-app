@@ -16,7 +16,7 @@ export default function SplashScreen() {
     
     // Navigate after delay
     const timer = setTimeout(() => {
-      navigation.navigate('SignUp'); 
+      navigation.navigate('Biodata'); //SignUp
     }, 5000);
     
     return () => clearTimeout(timer);
