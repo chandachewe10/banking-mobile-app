@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState ,useEffect} from 'react';
 import { 
   SafeAreaView, 
   View, 
@@ -9,21 +9,23 @@ import {
   TouchableOpacity,
   Platform
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { Picker } from '@react-native-picker/picker';
 import { countries, provincesByCountry, districtsByProvince } from './data/locations';
+import {personalDetails} from '../api';
 
 
   
 
 
 export default function BiodataScreen() {
-
+  const route = useRoute();
+ const {  email, mobile,token } = route.params;
 
   const navigation = useNavigation();
   const theme = useTheme();
-  
+   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -51,21 +53,53 @@ export default function BiodataScreen() {
     bankName: '',
     branchName: '',
     branchCode: '',
-    accountNumber: ''
+    accountNumber: '',
+    accountType: ''
   });
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+ 
+ useEffect(() => {
+  handleInputChange('email', email); 
+   handleInputChange('phoneNumber', mobile); 
+}, [email, mobile]);
 
-  const handleNext = () => {
-    navigation.navigate('DocumentUpload', { biodata: formData });
+  const handleNext = async () =>  {
+     console.log('starting saving personal details with token: ',token);
+    
+      
+      setLoading(true);
+      
+  try {
+      const response = await personalDetails(formData, token);
+  
+      if (response.success) {
+      
+       
+      console.log('Personal details saved successfully: ',response.data);
+  
+      navigation.navigate('DocumentUpload', {token});
+      } else {
+        console.warn('saving personal details failed:', response.message);
+        // Optionally show an alert or toast
+      }
+    } catch (err) {
+      console.error('Error saving personal details:', err);
+      // Optionally show an alert or toast
+    } finally {
+      setLoading(false);
+    }
+  
   };
 
   const isFormValid = () => {
-    const required = ['firstName', 'lastName', 'dateOfBirth', 'phoneNumber', 'email', 'address'];
+    const required = ['firstName', 'lastName', 'dateOfBirth', 'phoneNumber', 'address'];
     return required.every(field => formData[field].trim() !== '');
   };
+
+ 
 const provinces = formData.country ? provincesByCountry[formData.country] || [] : [];
 const districts = formData.province ? districtsByProvince[formData.province] || [] : [];
 
@@ -167,7 +201,7 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
             style={[styles.input, { borderColor: theme.borderColor }]}
             placeholder="e.g 123456/7/1"
             value={formData.citizenId}
-            onChangeText={(value) => handleInputChange('dateOfBirth', value)}
+            onChangeText={(value) => handleInputChange('citizenId', value)}
           />
         
         
@@ -182,9 +216,17 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
             value={formData.phoneNumber}
             onChangeText={(value) => handleInputChange('phoneNumber', value)}
             keyboardType="phone-pad"
+            editable={false} 
           />
 
-        
+         <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={[styles.input, { borderColor: theme.borderColor }]}
+            placeholder="Enter your employer email"
+            value={formData.email}
+            onChangeText={(value) => handleInputChange('email', value)}
+            editable={false} 
+          />
 
 
 
@@ -316,7 +358,7 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
             style={[styles.input, { borderColor: theme.borderColor }]}
             placeholder="Enter your employee number"
             value={formData.employeeNumber}
-            onChangeText={(value) => handleInputChange('employee_number', value)}
+            onChangeText={(value) => handleInputChange('employeeNumber', value)}
           />
 
             <Text style={styles.label}>Employee Start date</Text>
@@ -371,8 +413,8 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
           <TextInput
             style={[styles.input, { borderColor: theme.borderColor }]}
             placeholder="Enter Account type"
-            value={formData.branchCode}
-            onChangeText={(value) => handleInputChange('branchCode', value)}
+            value={formData.accountType}
+            onChangeText={(value) => handleInputChange('accountType', value)}
           />
 
           <Text style={styles.label}>Bank Account Number *</Text>

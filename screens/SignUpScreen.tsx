@@ -38,7 +38,7 @@ try {
       setToken(token);
      
      
-      //console.log('Registration successfull:',response.data.data.token);
+      console.log('Registration successfull:',response.data.data.token);
 
     navigation.navigate('OTPVerification', { email, mobile, token});
     } else {

@@ -88,6 +88,44 @@ export async function verifyOtp(otp: string, email?: string, token?:string): Pro
   }
 }
 
+
+
+export async function personalDetails(biodata: any, token: string): Promise<ApiResponse> {
+  console.log(`Saving user with data: ${biodata}, token: ${token}, platform: ${currentPlatform}`);
+  const formData = new FormData();
+  Object.keys(biodata).forEach(key => {
+    formData.append(key, biodata[key] || '');
+  });
+  
+  try {
+    // fetch a call to the web application
+    const response = await fetch(`${API_BASE}/api/personalDetails`, {
+      method: 'POST',
+      headers: {
+    ...addExpoHeaders(),
+    'Authorization': `Bearer ${token}`,
+   
+  },
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Saving personal details failed');
+  
+    return {
+      success: true,
+      message: 'Personal details saved successfully',
+      data: data
+    };
+  } catch (error) { 
+    console.error('Personal Details error:', error);
+    return {
+      success: false,
+      message: error.message || 'Failed to add personal details'
+    };
+  }
+}
+
+
 export async function submitKyc(payload: any): Promise<ApiResponse> {
   console.log(`Submitting KYC data, platform: ${currentPlatform}`);
   
