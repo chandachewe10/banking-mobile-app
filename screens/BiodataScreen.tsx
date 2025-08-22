@@ -80,7 +80,7 @@ export default function BiodataScreen() {
        
       console.log('Personal details saved successfully: ',response.data);
   
-      navigation.navigate('DocumentUpload', {token});
+      navigation.navigate('DocumentUpload', {token,email});
       } else {
         console.warn('saving personal details failed:', response.message);
         // Optionally show an alert or toast

@@ -7,7 +7,7 @@ const currentPlatform = Platform.OS || 'web';
 const runtimeVersion = Constants.manifest?.runtimeVersion || '1.0.0';
 const channelName = Constants.manifest?.updates?.channel || 'default';
 
-export const API_BASE = 'http://127.0.0.1:8050';
+export const API_BASE = 'http://127.0.0.1:8000';
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -124,6 +124,130 @@ export async function personalDetails(biodata: any, token: string): Promise<ApiR
     };
   }
 }
+
+
+export async function documentsUpload(idFront: string, idBack:string, selfie:string, bankStatement:string, payslip:string,email:string, token: string): Promise<ApiResponse> {
+  console.log(`Saving Docs with data: ${idFront}, token: ${token}, platform: ${currentPlatform}`);
+
+   const formData = new FormData();
+   formData.append('idFront', idFront);
+   formData.append('idBack', idBack);
+   formData.append('selfie', selfie);
+   formData.append('bankStatement', bankStatement);
+   formData.append('email', email);
+
+  
+  try {
+    // fetch a call to the web application
+    const response = await fetch(`${API_BASE}/api/documents`, {
+      method: 'POST',
+      headers: {
+    ...addExpoHeaders(),
+    'Authorization': `Bearer ${token}`,
+   
+  },
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Saving documents details failed');
+  
+    return {
+      success: true,
+      message: 'files saved successfully',
+      data: data
+    };
+  } catch (error) { 
+    console.error('files saving error:', error);
+    return {
+      success: false,
+      message: error.message || 'Failed to save files'
+    };
+  }
+}
+
+
+export async function loanDetails(amount: string, purpose:string, interestRate:any, tenure:string, arrangementFee:string, processingFee:string, insuranceFee:string, totalInterestFee:string, email:string, token: string): Promise<ApiResponse> {
+  console.log(`Saving loan details with data: ${amount}, ${purpose}, ${interestRate}, ${tenure}, ${email}, token: ${token}, platform: ${currentPlatform}`);
+
+   const formData = new FormData();
+   formData.append('amount', amount);
+   formData.append('purpose', purpose);
+   formData.append('interestRate', interestRate);
+   formData.append('tenure', tenure);
+   formData.append('arrangementFee', arrangementFee);
+   formData.append('processingFee', processingFee);
+   formData.append('insuranceFee', insuranceFee);
+   formData.append('totalInterestFee', totalInterestFee);
+   formData.append('email', email);
+
+  try {
+    // fetch a call to the web application
+    const response = await fetch(`${API_BASE}/api/loanDetails`, {
+      method: 'POST',
+      headers: {
+    ...addExpoHeaders(),
+    'Authorization': `Bearer ${token}`,
+  },
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Saving loan details failed');
+
+    return {
+      success: true,
+      message: 'Loan details saved successfully',
+      data: data
+    };
+  } catch (error) {
+    console.error('Loan details saving error:', error);
+    return {
+      success: false,
+      message: error.message || 'Failed to save loan details'
+    };
+  }
+}
+
+
+
+export async function signature(signatureUri: string, email: string, token: string): Promise<ApiResponse> {
+  console.log(`Saving signature URI: ${signatureUri}`);
+
+  const formData = new FormData();
+  formData.append('signatureUri', signatureUri);
+  formData.append('email', email);
+
+  try {
+    // fetch a call to the web application
+    const response = await fetch(`${API_BASE}/api/signature`, {
+      method: 'POST',
+      headers: {
+        ...addExpoHeaders(),
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Saving signature URI failed');
+
+    return {
+      success: true,
+      message: 'Signature URI saved successfully',
+      data: data
+    };
+  } catch (error) {
+    console.error('Signature URI saving error:', error);
+    return {
+      success: false,
+      message: error.message || 'Failed to save signature URI'
+    };
+  }
+
+}
+
+
+
+
+
 
 
 export async function submitKyc(payload: any): Promise<ApiResponse> {

@@ -1,33 +1,37 @@
 import React, { useState } from 'react';
-import { 
-  SafeAreaView, 
-  View, 
-  Text, 
-  TextInput, 
-  StyleSheet, 
-  ScrollView, 
+import {
+  SafeAreaView,
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  ScrollView,
   TouchableOpacity,
-  Platform
+  Platform,
+  ActivityIndicator
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { Picker } from '@react-native-picker/picker';
+
 import { useTheme } from '../theme';
+import { loanDetails } from '../api';
 
 export default function LoanDetailsScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const theme = useTheme();
-  const { biodata, docs } = route.params || { biodata: {}, docs: {} };
-  
+  const { email, token } = route.params;
+  const [loading, setLoading] = useState(false);
   const [loanAmount, setLoanAmount] = useState('');
   const [loanPurpose, setLoanPurpose] = useState('');
-  const [loanTenure, setLoanTenure] = useState('24');
+  const [loanTenure, setLoanTenure] = useState('1');
   const [monthlyIncome, setMonthlyIncome] = useState('');
 
   // Constants for fees and interest
-  const ARRANGEMENT_FEE_PERCENT = 0.04; // 4%
-  const PROCESSING_FEE_PERCENT = 0.025; // 2.5%
-  const INSURANCE_FEE_PERCENT = 0.045; // 4.5%
-  const INTEREST_RATE_ANNUAL = 0.32; // 32% per annum
+  const ARRANGEMENT_FEE_PERCENT = 0.04;
+  const PROCESSING_FEE_PERCENT = 0.025;
+  const INSURANCE_FEE_PERCENT = 0.045;
+  const INTEREST_RATE_MONTHLY = 0.32;
 
   const calculateSummary = () => {
     const amount = parseFloat(loanAmount) || 0;
@@ -35,12 +39,13 @@ export default function LoanDetailsScreen() {
     const arrangementFee = amount * ARRANGEMENT_FEE_PERCENT;
     const processingFee = amount * PROCESSING_FEE_PERCENT;
     const insuranceFee = amount * INSURANCE_FEE_PERCENT;
-    const totalFees = arrangementFee + processingFee + insuranceFee;
+    const totalFees = processingFee + arrangementFee + insuranceFee;
     const totalDisbursable = amount - totalFees;
     const principalMonthly = tenure > 0 ? amount / tenure : 0;
-    const totalInterest = amount * INTEREST_RATE_ANNUAL * (tenure / 12);
+    const totalInterest = amount * INTEREST_RATE_MONTHLY * tenure;
     const monthlyInterest = tenure > 0 ? totalInterest / tenure : 0;
     const monthlyRepayment = principalMonthly + monthlyInterest;
+    
     return {
       arrangementFee: arrangementFee.toFixed(2),
       processingFee: processingFee.toFixed(2),
@@ -48,23 +53,42 @@ export default function LoanDetailsScreen() {
       totalFees: totalFees.toFixed(2),
       totalDisbursable: totalDisbursable.toFixed(2),
       monthlyRepayment: monthlyRepayment.toFixed(2),
+      totalInterest: totalInterest.toFixed(2)
     };
   };
 
-  const handleNext = () => {
-    const loanDetails = {
-      amount: loanAmount,
-      purpose: loanPurpose,
-      tenure: loanTenure,
-      monthlyIncome,
-      summary: calculateSummary()
-    };
+  const handleNext = async () => {
+    setLoading(true);
     
-    navigation.navigate('Signature', { 
-      biodata, 
-      docs, 
-      loanDetails 
-    });
+    try {
+      const summary = calculateSummary();
+      
+      const response = await loanDetails(
+        loanAmount, 
+        loanPurpose, 
+        INTEREST_RATE_MONTHLY.toString(), 
+        loanTenure, 
+        summary.arrangementFee,
+        summary.processingFee,
+        summary.insuranceFee,
+        summary.totalInterest,
+        email, 
+        token
+      );
+
+      if (response.success) {
+        console.log('Loan details have been saved successfully: ', response.data);
+        navigation.navigate('Signature', { email, token });
+      } else {
+        console.warn('Saving loan details failed:', response.message);
+        // You might want to show an alert to the user here
+      }
+    } catch (err) {
+      console.error('Error saving loan details:', err);
+      // You might want to show an alert to the user here
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isFormValid = () => {
@@ -83,7 +107,7 @@ export default function LoanDetailsScreen() {
 
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
           <Text style={[styles.cardTitle, { color: theme.textColor }]}>Loan Information</Text>
-          
+
           <Text style={styles.label}>Loan Amount (K) *</Text>
           <TextInput
             style={[styles.input, { borderColor: theme.borderColor }]}
@@ -94,21 +118,44 @@ export default function LoanDetailsScreen() {
           />
 
           <Text style={styles.label}>Loan Purpose *</Text>
-          <TextInput
-            style={[styles.input, { borderColor: theme.borderColor }]}
-            placeholder="Enter loan purpose"
-            value={loanPurpose}
-            onChangeText={setLoanPurpose}
-          />
+          <View style={[styles.pickerContainer, { borderColor: theme.borderColor }]}>
+            <Picker
+              selectedValue={loanPurpose}
+              onValueChange={(itemValue) => setLoanPurpose(itemValue)}
+              style={[styles.input]}
+              dropdownIconColor={theme.textColor}
+            >
+              <Picker.Item label="Select loan purpose" value="" />
+              <Picker.Item label="Business Loan" value="Business Loan" />
+              <Picker.Item label="Consumer Loan" value="Consumer Loan" />
+              <Picker.Item label="Agri Loan" value="Agri Loan" />
+              <Picker.Item label="Scheme Loan" value="Scheme Loan" />
+              <Picker.Item label="Public Sector Staff Loan" value="Public Sector Staff Loan" />
+              <Picker.Item label="Gadget Finance Loan" value="Gadget Finance Loan" />
+              <Picker.Item label="Solar Loan" value="Solar Loan" />
+            </Picker>
+          </View>
 
           <Text style={styles.label}>Loan Tenure (Months)</Text>
-          <TextInput
-            style={[styles.input, { borderColor: theme.borderColor }]}
-            placeholder="24"
-            value={loanTenure}
-            onChangeText={setLoanTenure}
-            keyboardType="numeric"
-          />
+          <View style={[styles.pickerContainer, { borderColor: theme.borderColor }]}>
+            <Picker
+              selectedValue={loanTenure}
+              onValueChange={(itemValue) => setLoanTenure(itemValue)}
+              style={styles.input}
+              dropdownIconColor={theme.textColor}
+            >
+              <Picker.Item label="Select tenure" value="" />
+              <Picker.Item label="3 Months" value="3" />
+              <Picker.Item label="6 Months" value="6" />
+              <Picker.Item label="12 Months" value="12" />
+              <Picker.Item label="24 Months" value="24" />
+              <Picker.Item label="36 Months" value="36" />
+              <Picker.Item label="48 Months" value="48" />
+              <Picker.Item label="60 Months" value="60" />
+              <Picker.Item label="72 Months" value="72" />
+              <Picker.Item label="84 Months" value="84" />
+            </Picker>
+          </View>
 
           <Text style={styles.label}>Monthly Income (K) *</Text>
           <TextInput
@@ -123,37 +170,37 @@ export default function LoanDetailsScreen() {
         {loanAmount && (
           <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
             <Text style={[styles.cardTitle, { color: theme.textColor }]}>Fee Summary</Text>
-            
+
             <View style={styles.feeRow}>
               <Text style={styles.feeLabel}>Loan Amount:</Text>
               <Text style={styles.feeValue}>K{parseFloat(loanAmount).toLocaleString()}</Text>
             </View>
-            
+
             <View style={styles.feeRow}>
               <Text style={styles.feeLabel}>Arrangement Fee (4%):</Text>
               <Text style={styles.feeValue}>K{parseFloat(summary.arrangementFee).toLocaleString()}</Text>
             </View>
-            
+
             <View style={styles.feeRow}>
               <Text style={styles.feeLabel}>Processing Fee (2.5%):</Text>
               <Text style={styles.feeValue}>K{parseFloat(summary.processingFee).toLocaleString()}</Text>
             </View>
-            
+
             <View style={styles.feeRow}>
-              <Text style={styles.feeLabel}>Credit Life Insurance (4.5%):</Text>
+              <Text style={styles.feeLabel}>Insurance (4.5%):</Text>
               <Text style={styles.feeValue}>K{parseFloat(summary.insuranceFee).toLocaleString()}</Text>
             </View>
-            
+
             <View style={styles.feeRow}>
               <Text style={styles.feeLabel}>Total Fees:</Text>
               <Text style={styles.feeValue}>K{parseFloat(summary.totalFees).toLocaleString()}</Text>
             </View>
-            
+
             <View style={styles.feeRow}>
               <Text style={styles.feeLabel}>Total Disbursable Amount:</Text>
               <Text style={styles.feeValue}>K{parseFloat(summary.totalDisbursable).toLocaleString()}</Text>
             </View>
-            
+
             <View style={[styles.feeRow, styles.totalRow]}>
               <Text style={[styles.feeLabel, styles.totalLabel]}>Monthly Repayment:</Text>
               <Text style={[styles.feeValue, styles.totalValue]}>K{parseFloat(summary.monthlyRepayment).toLocaleString()}</Text>
@@ -163,18 +210,22 @@ export default function LoanDetailsScreen() {
 
         <TouchableOpacity
           style={[
-            styles.button, 
-            { 
+            styles.button,
+            {
               backgroundColor: theme.primaryColor,
               opacity: isFormValid() ? 1 : 0.7
             }
           ]}
           onPress={handleNext}
-          disabled={!isFormValid()}
+          disabled={!isFormValid() || loading}
         >
-          <Text style={styles.buttonText}>Next</Text>
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.buttonText}>Next</Text>
+          )}
         </TouchableOpacity>
-        
+
         <Text style={styles.platformInfo}>
           Current Platform: {Platform.OS || 'unknown'}
         </Text>
@@ -274,5 +325,12 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 14,
     color: '#888',
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 16,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
   },
 });

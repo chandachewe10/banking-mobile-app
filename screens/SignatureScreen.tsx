@@ -12,6 +12,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../theme';
+import {signature} from '../api';
 
 // @ts-ignore: Only available on web
 import SignatureCanvas from 'react-signature-canvas';
@@ -20,12 +21,11 @@ export default function SignatureScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const theme = useTheme();
-  const { biodata, docs, loanDetails } = route.params || {};
-
+  const { email, token } = route.params;
   const [signatureUri, setSignatureUri] = useState<string | null>(null);
   const [agreed, setAgreed] = useState(false);
   const sigCanvasRef = useRef<any>(null);
-
+  const [loading, setLoading] = useState(false);
   const isWeb = Platform.OS === 'web';
 
   const handleCaptureSignature = async () => {
@@ -44,9 +44,30 @@ export default function SignatureScreen() {
     }
   };
 
-  const handleSubmit = () => {
-    const signature = { uri: signatureUri!, timestamp: new Date().toISOString() };
-    navigation.navigate('Confirmation', { biodata, docs, loanDetails, signature });
+  const handleSubmit = async () => {
+    setLoading(true);
+    
+        try {
+          const response = await signature(signatureUri, email, token);
+
+          if (response.success) {
+    
+            const caseNumber = response.data.data.caseNumber
+            console.log('Signature has been saved successfully: ', response.data);
+    
+            navigation.navigate('Confirmation', { email, token, caseNumber });
+          } else {
+            console.warn('saving signature details failed:', response.message);
+
+          }
+        } catch (err) {
+          console.error('Error saving signature details:', err);
+
+        } finally {
+          setLoading(false);
+        }
+    
+    
   };
 
   const isValid = agreed && !!signatureUri;

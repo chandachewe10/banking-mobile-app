@@ -15,7 +15,7 @@ import { useTheme } from '../theme';
 export default function ConfirmationScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { biodata, docs, loanDetails, signature } = route.params || {};
+   const { email, token, caseNumber } = route.params;
   const theme = useTheme();
   const [submitting, setSubmitting] = useState(true);
   const [success, setSuccess] = useState(false);
@@ -57,7 +57,7 @@ export default function ConfirmationScreen() {
           
           {success && (
             <Text style={styles.referenceText}>
-              Reference Number: KYC-{Math.floor(Math.random() * 1000000)}
+              Reference Number: KYC-{caseNumber}
             </Text>
           )}
           

@@ -1,22 +1,24 @@
 import React, { useState } from 'react';
-import { 
-  SafeAreaView, 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
+import {
+  SafeAreaView,
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
   TouchableOpacity,
   Platform
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../theme';
+import { documentsUpload } from '../api';
 
 export default function DocumentUploadScreen() {
   const navigation = useNavigation();
   const route = useRoute();
+  const { email, token } = route.params;
+  const [loading, setLoading] = useState(false);
   const theme = useTheme();
-  const { biodata } = route.params || { biodata: {} };
   const [idFront, setIdFront] = useState<string | null>(null);
   const [idBack, setIdBack] = useState<string | null>(null);
   const [selfie, setSelfie] = useState<string | null>(null);
@@ -25,21 +27,21 @@ export default function DocumentUploadScreen() {
 
   const handleCapture = async (documentType: 'idFront' | 'idBack' | 'selfie' | 'bankStatement' | 'payslip') => {
     // request permissions and open camera on native, gallery on web
-   if (Platform.OS !== 'web') {
-  const { status } = await ImagePicker.requestCameraPermissionsAsync();
-  if (status !== 'granted') return;
-}
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') return;
+    }
 
-const pickerResult = Platform.OS === 'web'
-  ? await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images })
-  : await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
+    const pickerResult = Platform.OS === 'web'
+      ? await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images })
+      : await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
 
-if (pickerResult.canceled) return;
+    if (pickerResult.canceled) return;
 
-const asset = pickerResult.assets?.[0];
-if (!asset?.uri) return;
+    const asset = pickerResult.assets?.[0];
+    if (!asset?.uri) return;
 
-    
+
     const uri = asset.uri;
     switch (documentType) {
       case 'idFront': setIdFront(uri); break;
@@ -50,17 +52,30 @@ if (!asset?.uri) return;
     }
   };
 
-  const handleNext = () => {
-    navigation.navigate('LoanDetails', { 
-      biodata, 
-      docs: { 
-        idFront, 
-        idBack, 
-        selfie,
-        bankStatement,
-        payslip
-      } 
-    });
+  const handleNext = async () => {
+    setLoading(true);
+
+    try {
+      const response = await documentsUpload(idFront, idBack, selfie, bankStatement, payslip, email, token);
+
+      if (response.success) {
+
+
+        console.log('Documents details have been saved successfully: ', response.data);
+
+        navigation.navigate('LoanDetails', { token, email });
+      } else {
+        console.warn('saving documents details failed:', response.message);
+
+      }
+    } catch (err) {
+      console.error('Error saving documents:', err);
+
+    } finally {
+      setLoading(false);
+    }
+
+
   };
 
   // Only require ID front, ID back, and selfie for navigation
@@ -79,8 +94,8 @@ if (!asset?.uri) return;
           <TouchableOpacity
             style={[
               styles.uploadButton,
-              { 
-                backgroundColor: idFront ? theme.successColor : theme.primaryColor 
+              {
+                backgroundColor: idFront ? theme.successColor : theme.primaryColor
               }
             ]}
             onPress={() => handleCapture('idFront')}
@@ -96,8 +111,8 @@ if (!asset?.uri) return;
           <TouchableOpacity
             style={[
               styles.uploadButton,
-              { 
-                backgroundColor: idBack ? theme.successColor : theme.primaryColor 
+              {
+                backgroundColor: idBack ? theme.successColor : theme.primaryColor
               }
             ]}
             onPress={() => handleCapture('idBack')}
@@ -113,8 +128,8 @@ if (!asset?.uri) return;
           <TouchableOpacity
             style={[
               styles.uploadButton,
-              { 
-                backgroundColor: selfie ? theme.successColor : theme.primaryColor 
+              {
+                backgroundColor: selfie ? theme.successColor : theme.primaryColor
               }
             ]}
             onPress={() => handleCapture('selfie')}
@@ -130,8 +145,8 @@ if (!asset?.uri) return;
           <TouchableOpacity
             style={[
               styles.uploadButton,
-              { 
-                backgroundColor: bankStatement ? theme.successColor : theme.primaryColor 
+              {
+                backgroundColor: bankStatement ? theme.successColor : theme.primaryColor
               }
             ]}
             onPress={() => handleCapture('bankStatement')}
@@ -147,8 +162,8 @@ if (!asset?.uri) return;
           <TouchableOpacity
             style={[
               styles.uploadButton,
-              { 
-                backgroundColor: payslip ? theme.successColor : theme.primaryColor 
+              {
+                backgroundColor: payslip ? theme.successColor : theme.primaryColor
               }
             ]}
             onPress={() => handleCapture('payslip')}
@@ -161,8 +176,8 @@ if (!asset?.uri) return;
 
         <TouchableOpacity
           style={[
-            styles.button, 
-            { 
+            styles.button,
+            {
               backgroundColor: theme.primaryColor,
               opacity: canProceed ? 1 : 0.7
             }
@@ -172,7 +187,7 @@ if (!asset?.uri) return;
         >
           <Text style={styles.buttonText}>Next</Text>
         </TouchableOpacity>
-        
+
         <Text style={styles.platformInfo}>
           Current Platform: {Platform.OS || 'unknown'}
         </Text>
