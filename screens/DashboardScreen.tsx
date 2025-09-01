@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme';
-
+import { toast } from "sonner-native";
 export default function DashboardScreen() {
   const navigation = useNavigation();
   const theme = useTheme();

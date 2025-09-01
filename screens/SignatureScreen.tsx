@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { toast } from "sonner-native";
 import {
   SafeAreaView,
   View,
@@ -52,18 +53,18 @@ export default function SignatureScreen() {
           const response = await signature(signatureUri, email, token);
 
           if (response.success) {
-    
+            toast.success('Signature has been saved successfully');
             const caseNumber = response.data.data.caseNumber
             console.log('Signature has been saved successfully: ', response.data);
     
             navigation.navigate('Confirmation', { email, token, caseNumber });
           } else {
             console.warn('saving signature details failed:', response.message);
-
+             toast.error(response.message || "Signature saving failed");
           }
         } catch (err) {
           console.error('Error saving signature details:', err);
-
+          toast.error("An error occurred while saving signature");
         } finally {
           setLoading(false);
         }

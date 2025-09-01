@@ -1,4 +1,5 @@
 import React, { useState ,useEffect} from 'react';
+import { toast } from "sonner-native";
 import { 
   SafeAreaView, 
   View, 
@@ -77,18 +78,19 @@ export default function BiodataScreen() {
       const response = await personalDetails(formData, token);
   
       if (response.success) {
-      
+      toast.success('Personal details saved successfully');
        
       console.log('Personal details saved successfully: ',response.data);
   
       navigation.navigate('DocumentUpload', {token,email});
       } else {
+        toast.error(response.message || "Saving personal details failed");
         console.warn('saving personal details failed:', response.message);
-        // Optionally show an alert or toast
+        
       }
     } catch (err) {
       console.error('Error saving personal details:', err);
-      // Optionally show an alert or toast
+      toast.error("An error occurred while saving personal details");
     } finally {
       setLoading(false);
     }

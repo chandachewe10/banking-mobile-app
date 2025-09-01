@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from "sonner-native";
 import {register} from '../api';
 import { 
   View, 
@@ -14,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme';
 
 export default function SignUpScreen() {
+  
   const navigation = useNavigation();
   const theme = useTheme();
   const [email, setEmail] = useState('');
@@ -36,18 +38,21 @@ try {
     if (response.success) {
       const token = response.data.data.token;
       setToken(token);
-     
-     
+
+      toast.success(response.message || "Registration successful");
       console.log('Registration successfull:',response.data.data.token);
 
     navigation.navigate('OTPVerification', { email, mobile, token});
     } else {
       console.warn('registration failed:', response.message);
-      // Optionally show an alert or toast
+      toast.error(response.message || "Registration failed");
+
     }
   } catch (err) {
     console.error('Error verifying OTP:', err);
-    // Optionally show an alert or toast
+    const errorMessage = typeof err === 'object' && err !== null && 'message' in err ? (err as { message?: string }).message : undefined;
+    toast.error(errorMessage || "An error occurred");
+
   } finally {
     setLoading(false);
   }

@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { toast } from "sonner-native";
 
 export default function CardComponent() {
   return (

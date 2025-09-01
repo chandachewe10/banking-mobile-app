@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import * as FileSystem from 'expo-file-system';
-
+import { toast } from "sonner-native";
 import {
   SafeAreaView,
   View,
@@ -106,12 +106,14 @@ const handleNext = async () => {
     );
 
     if (response.success) {
+      toast.success('Documents details have been saved successfully');
       console.log('Documents details have been saved successfully: ', response.data);
       navigation.navigate('LoanDetails', { token, email });
     } else {
-      console.warn('saving documents details failed:', response.message);
+      toast.error(response.message || "Saving documents details failed");
     }
   } catch (err) {
+    toast.error("An error occurred while saving documents");
     console.error('Error saving documents:', err);
   } finally {
     setLoading(false);
