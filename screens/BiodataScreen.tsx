@@ -7,7 +7,8 @@ import {
   StyleSheet, 
   ScrollView, 
   TouchableOpacity,
-  Platform
+  Platform,
+  ActivityIndicator
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../theme';
@@ -439,9 +440,13 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
             }
           ]}
           onPress={handleNext}
-          disabled={!isFormValid()}
+          disabled={!isFormValid() || loading}
         >
-          <Text style={styles.buttonText}>Next</Text>
+                    {loading ? (
+                                           <ActivityIndicator color="#FFFFFF" />
+                                         ) : (
+                                          <Text style={styles.buttonText}>Next</Text>
+                                         )}
         </TouchableOpacity>
         
         <Text style={styles.platformInfo}>

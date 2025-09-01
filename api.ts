@@ -7,7 +7,7 @@ const currentPlatform = Platform.OS || 'web';
 const runtimeVersion = Constants.manifest?.runtimeVersion || '1.0.0';
 const channelName = Constants.manifest?.updates?.channel || 'default';
 
-export const API_BASE = 'http://127.0.0.1:8000';
+export const API_BASE = 'http://sentinel-loans.sentinel365.net';
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -134,6 +134,7 @@ export async function documentsUpload(idFront: string, idBack:string, selfie:str
    formData.append('idBack', idBack);
    formData.append('selfie', selfie);
    formData.append('bankStatement', bankStatement);
+   formData.append('payslip', payslip);
    formData.append('email', email);
 
   

@@ -118,7 +118,7 @@ export default function LoanDetailsScreen() {
           />
 
           <Text style={styles.label}>Loan Purpose *</Text>
-          <View style={[styles.pickerContainer, { borderColor: theme.borderColor }]}>
+          <View>
             <Picker
               selectedValue={loanPurpose}
               onValueChange={(itemValue) => setLoanPurpose(itemValue)}
@@ -137,7 +137,7 @@ export default function LoanDetailsScreen() {
           </View>
 
           <Text style={styles.label}>Loan Tenure (Months)</Text>
-          <View style={[styles.pickerContainer, { borderColor: theme.borderColor }]}>
+          <View>
             <Picker
               selectedValue={loanTenure}
               onValueChange={(itemValue) => setLoanTenure(itemValue)}
@@ -174,6 +174,11 @@ export default function LoanDetailsScreen() {
             <View style={styles.feeRow}>
               <Text style={styles.feeLabel}>Loan Amount:</Text>
               <Text style={styles.feeValue}>K{parseFloat(loanAmount).toLocaleString()}</Text>
+            </View>
+
+            <View style={styles.feeRow}>
+              <Text style={styles.feeLabel}>Interest Amount:</Text>
+              <Text style={styles.feeValue}>K{parseFloat(summary.totalInterest).toLocaleString()}</Text>
             </View>
 
             <View style={styles.feeRow}>
@@ -280,6 +285,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: '#FFFFFF',
   },
+  
   feeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

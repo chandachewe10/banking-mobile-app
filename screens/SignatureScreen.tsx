@@ -8,6 +8,7 @@ import {
   Platform,
   ScrollView,
   Image as RNImage,
+  ActivityIndicator
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -169,9 +170,16 @@ export default function SignatureScreen() {
             { backgroundColor: theme.successColor, opacity: isValid ? 1 : 0.6 },
           ]}
           onPress={handleSubmit}
-          disabled={!isValid}
+          disabled={!isValid || loading}
         >
-          <Text style={styles.buttonText}>Submit Application</Text>
+
+
+          {loading ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                       <Text style={styles.buttonText}>Submit Application</Text>
+                      )}
+          
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

@@ -1,9 +1,8 @@
 import 'dotenv/config';
 
 export default {
-  name: 'KYC Self-Onboarding',
-  slug: 'kyc-self-onboarding',
-  sdkVersion: '52.0.0',
+  name: 'SENTINEL',
+  slug: 'sentinel-loans-demo-self-onboarding',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
@@ -17,6 +16,9 @@ export default {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.yourbank.kyc',
+    runtimeVersion: {
+      policy: 'appVersion',
+    },
   },
   android: {
     adaptiveIcon: {
@@ -24,21 +26,20 @@ export default {
       backgroundColor: '#ffffff',
     },
     package: 'com.yourbank.kyc',
+    runtimeVersion: '1.0.0',
   },
   web: {
     favicon: './assets/favicon.png',
   },
+  platforms: ['android', 'ios', 'web'],
+
+  // updates: {
+  //   url: 'https://u.expo.dev/df73b81c-d5f1-4a14-966c-08e5e541d4fa',
+  // },
+
   extra: {
     eas: {
-      projectId: 'your-project-id',
+      projectId: 'df73b81c-d5f1-4a14-966c-08e5e541d4fa',
     },
   },
-  runtimeVersion: {
-    policy: 'sdkVersion',
-  },
-  updates: {
-    fallbackToCacheTimeout: 0,
-    url: 'https://u.expo.dev/your-project-id',
-  },
-  platforms: ['android', 'ios', 'web'],
 };

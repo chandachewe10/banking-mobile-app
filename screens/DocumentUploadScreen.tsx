@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import * as FileSystem from 'expo-file-system';
+
 import {
   SafeAreaView,
   View,
@@ -6,7 +8,8 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Platform
+  Platform,
+  ActivityIndicator
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -52,31 +55,68 @@ export default function DocumentUploadScreen() {
     }
   };
 
-  const handleNext = async () => {
-    setLoading(true);
 
-    try {
-      const response = await documentsUpload(idFront, idBack, selfie, bankStatement, payslip, email, token);
+const convertImageToBase64 = async (uri: string): Promise<string> => {
+  try {
+    // Read the file as base64
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    return `data:image/jpeg;base64,${base64}`;
+  } catch (error) {
+    console.error('Error converting image to base64:', error);
+    throw error;
+  }
+};
 
-      if (response.success) {
 
+const handleNext = async () => {
+  setLoading(true);
 
-        console.log('Documents details have been saved successfully: ', response.data);
+  try {
+    // Convert all images to base64 before uploading
+    const convertIfNeeded = async (uri: string | null): Promise<string | null> => {
+      if (!uri) return null;
+      if (uri.startsWith('data:image')) return uri; // Already base64
+      return await convertImageToBase64(uri);
+    };
 
-        navigation.navigate('LoanDetails', { token, email });
-      } else {
-        console.warn('saving documents details failed:', response.message);
+    const [
+      idFrontBase64,
+      idBackBase64,
+      selfieBase64,
+      bankStatementBase64,
+      payslipBase64
+    ] = await Promise.all([
+      convertIfNeeded(idFront),
+      convertIfNeeded(idBack),
+      convertIfNeeded(selfie),
+      convertIfNeeded(bankStatement),
+      convertIfNeeded(payslip)
+    ]);
 
-      }
-    } catch (err) {
-      console.error('Error saving documents:', err);
+    const response = await documentsUpload(
+      idFrontBase64,
+      idBackBase64,
+      selfieBase64,
+      bankStatementBase64,
+      payslipBase64,
+      email,
+      token
+    );
 
-    } finally {
-      setLoading(false);
+    if (response.success) {
+      console.log('Documents details have been saved successfully: ', response.data);
+      navigation.navigate('LoanDetails', { token, email });
+    } else {
+      console.warn('saving documents details failed:', response.message);
     }
-
-
-  };
+  } catch (err) {
+    console.error('Error saving documents:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Only require ID front, ID back, and selfie for navigation
   const canProceed = idFront && idBack && selfie;
@@ -183,9 +223,14 @@ export default function DocumentUploadScreen() {
             }
           ]}
           onPress={handleNext}
-          disabled={!canProceed}
+          disabled={!canProceed || loading}
         >
-          <Text style={styles.buttonText}>Next</Text>
+           {loading ? (
+                                  <ActivityIndicator color="#FFFFFF" />
+                                ) : (
+                                 <Text style={styles.buttonText}>Next</Text>
+                                )}
+         
         </TouchableOpacity>
 
         <Text style={styles.platformInfo}>
