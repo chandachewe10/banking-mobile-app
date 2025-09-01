@@ -68,7 +68,7 @@ try {
         </Text>
         
         <View style={styles.form}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>Email <Text style={styles.required}>*</Text></Text>
           <TextInput
             style={[styles.input, { borderColor: theme.borderColor }]}
             placeholder="Enter your email"
@@ -78,7 +78,7 @@ try {
             autoCapitalize="none"
           />
           
-          <Text style={styles.label}>Mobile Number</Text>
+          <Text style={styles.label}>Mobile Number <Text style={styles.required}>*</Text></Text>
           <TextInput
             style={[styles.input, { borderColor: theme.borderColor }]}
             placeholder="Enter your mobile number"
@@ -159,4 +159,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
   },
+  required: {
+  color: 'red',
+},
 });

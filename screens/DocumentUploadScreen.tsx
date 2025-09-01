@@ -132,7 +132,7 @@ const handleNext = async () => {
         </Text>
 
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
-          <Text style={[styles.cardTitle, { color: theme.textColor }]}>ID Card (Front) *</Text>
+          <Text style={[styles.cardTitle, { color: theme.textColor }]}>ID Card (Front) <Text style={styles.required}>*</Text></Text>
           <TouchableOpacity
             style={[
               styles.uploadButton,
@@ -149,7 +149,7 @@ const handleNext = async () => {
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
-          <Text style={[styles.cardTitle, { color: theme.textColor }]}>ID Card (Back) *</Text>
+          <Text style={[styles.cardTitle, { color: theme.textColor }]}>ID Card (Back) <Text style={styles.required}>*</Text></Text>
           <TouchableOpacity
             style={[
               styles.uploadButton,
@@ -166,7 +166,7 @@ const handleNext = async () => {
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
-          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Selfie *</Text>
+          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Selfie <Text style={styles.required}>*</Text></Text>
           <TouchableOpacity
             style={[
               styles.uploadButton,
@@ -183,7 +183,7 @@ const handleNext = async () => {
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
-          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Bank Statement(s)</Text>
+          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Bank Statement(s) <Text style={styles.required}>*</Text></Text>
           <TouchableOpacity
             style={[
               styles.uploadButton,
@@ -200,7 +200,7 @@ const handleNext = async () => {
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
-          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Payslip(s)</Text>
+          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Payslip(s) <Text style={styles.required}>*</Text></Text>
           <TouchableOpacity
             style={[
               styles.uploadButton,
@@ -300,4 +300,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
   },
+  required: {
+  color: 'red',
+},
 });

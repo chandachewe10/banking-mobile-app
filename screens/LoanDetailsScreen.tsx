@@ -110,7 +110,7 @@ export default function LoanDetailsScreen() {
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
           <Text style={[styles.cardTitle, { color: theme.textColor }]}>Loan Information</Text>
 
-          <Text style={styles.label}>Loan Amount (K) *</Text>
+          <Text style={styles.label}>Loan Amount (K) <Text style={styles.required}>*</Text></Text>
           <TextInput
             style={[styles.input, { borderColor: theme.borderColor }]}
             placeholder="Enter amount in Kwacha"
@@ -119,7 +119,7 @@ export default function LoanDetailsScreen() {
             keyboardType="numeric"
           />
 
-          <Text style={styles.label}>Loan Purpose *</Text>
+          <Text style={styles.label}>Loan Purpose <Text style={styles.required}>*</Text></Text>
           <View>
             <Picker
               selectedValue={loanPurpose}
@@ -138,7 +138,7 @@ export default function LoanDetailsScreen() {
             </Picker>
           </View>
 
-          <Text style={styles.label}>Loan Tenure (Months)</Text>
+          <Text style={styles.label}>Loan Tenure (Months) <Text style={styles.required}>*</Text></Text>
           <View>
             <Picker
               selectedValue={loanTenure}
@@ -159,7 +159,7 @@ export default function LoanDetailsScreen() {
             </Picker>
           </View>
 
-          <Text style={styles.label}>Monthly Income (K) *</Text>
+          <Text style={styles.label}>Monthly Income (K) <Text style={styles.required}>*</Text></Text>
           <TextInput
             style={[styles.input, { borderColor: theme.borderColor }]}
             placeholder="Enter monthly income in Kwacha"
@@ -341,4 +341,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     justifyContent: 'center',
   },
+  required: {
+  color: 'red',
+},
 });

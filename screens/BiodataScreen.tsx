@@ -212,7 +212,7 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
        
           <Text style={[styles.sectionTitle, { color: theme.textColor }]}>Contact Information</Text>
           
-          <Text style={styles.label}>Phone Number *</Text>
+          <Text style={styles.label}>Phone Number <Text style={styles.required}>*</Text></Text>
           <TextInput
             style={[styles.input, { borderColor: theme.borderColor }]}
             placeholder="Enter your phone number"
@@ -222,7 +222,7 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
             editable={false} 
           />
 
-         <Text style={styles.label}>Email</Text>
+         <Text style={styles.label}>Email <Text style={styles.required}>*</Text></Text>
           <TextInput
             style={[styles.input, { borderColor: theme.borderColor }]}
             placeholder="Enter your employer email"
@@ -235,7 +235,7 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
 
 
       {/* Country Picker */}
-      <Text style={styles.label}>Country *</Text>
+      <Text style={styles.label}>Country <Text style={styles.required}>*</Text></Text>
       <View>
         <Picker
         style={[styles.input, { borderColor: theme.borderColor }]}
@@ -256,7 +256,7 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
       {/* Province Picker */}
       {provinces.length > 0 && (
         <>
-          <Text style={styles.label}>Province *</Text>
+          <Text style={styles.label}>Province <Text style={styles.required}>*</Text></Text>
           <View>
             <Picker
             style={[styles.input, { borderColor: theme.borderColor }]}
@@ -279,7 +279,7 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
       {/* District Picker */}
       {districts.length > 0 && (
         <>
-          <Text style={styles.label}>District *</Text>
+          <Text style={styles.label}>District <Text style={styles.required}>*</Text></Text>
           <View>
             <Picker
             style={[styles.input, { borderColor: theme.borderColor }]}
@@ -300,7 +300,7 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
         
 
 
-          <Text style={styles.label}>Address *</Text>
+          <Text style={styles.label}>Address <Text style={styles.required}>*</Text></Text>
           <TextInput
             style={[styles.input, { borderColor: theme.borderColor }]}
             placeholder="Enter your address"
@@ -387,7 +387,7 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
         <View style={[styles.section, { backgroundColor: theme.cardBackgroundColor }]}>
           <Text style={[styles.sectionTitle, { color: theme.textColor }]}>Bank Details</Text>
           
-          <Text style={styles.label}>Bank Name *</Text>
+          <Text style={styles.label}>Bank Name </Text>
           <TextInput
             style={[styles.input, { borderColor: theme.borderColor }]}
             placeholder="Enter your Bank name"
@@ -395,7 +395,7 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
             onChangeText={(value) => handleInputChange('bankName', value)}
           />
 
-          <Text style={styles.label}>Branch Name *</Text>
+          <Text style={styles.label}>Branch Name </Text>
           <TextInput
             style={[styles.input, { borderColor: theme.borderColor }]}
             placeholder="Enter Branch Name"
@@ -420,7 +420,7 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
             onChangeText={(value) => handleInputChange('accountType', value)}
           />
 
-          <Text style={styles.label}>Bank Account Number *</Text>
+          <Text style={styles.label}>Bank Account Number </Text>
           <TextInput
             style={[styles.input, { borderColor: theme.borderColor }]}
             placeholder="Enter your Account Number"
@@ -530,4 +530,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
   },
+  required: {
+  color: 'red',
+},
 });
