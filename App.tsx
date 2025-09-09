@@ -2,9 +2,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from "react-native-safe-area-context"
-import { Toaster } from 'sonner-native';
-
-// Import all screens
+import Toast from 'react-native-toast-message';
 import DashboardScreen from "./screens/DashboardScreen";
 import BiodataScreen from "./screens/BiodataScreen";
 import DocumentUploadScreen from "./screens/DocumentUploadScreen";
@@ -41,10 +39,10 @@ function RootStack() {
 export default function App() {
   return (
     <SafeAreaProvider style={styles.container}>
-      <Toaster />
       <NavigationContainer>
         <RootStack />
       </NavigationContainer>
+      <Toast />
     </SafeAreaProvider>
   );
 }

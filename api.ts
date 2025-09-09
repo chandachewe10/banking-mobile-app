@@ -7,7 +7,7 @@ const currentPlatform = Platform.OS || 'web';
 const runtimeVersion = Constants.manifest?.runtimeVersion || '1.0.0';
 const channelName = Constants.manifest?.updates?.channel || 'default';
 
-export const API_BASE = 'http://sentinel-loans.sentinel365.net';
+export const API_BASE = 'https://sentinel-loans.sentinel365.net';
 
 interface ApiResponse<T = any> {
   success: boolean;

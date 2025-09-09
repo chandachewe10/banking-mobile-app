@@ -1,5 +1,8 @@
 import React, { useState ,useEffect} from 'react';
-import { toast } from "sonner-native";
+import Toast from 'react-native-toast-message';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { format } from 'date-fns';
+
 import { 
   SafeAreaView, 
   View, 
@@ -58,6 +61,16 @@ export default function BiodataScreen() {
     accountNumber: '',
     accountType: ''
   });
+const [showDatePicker, setShowDatePicker] = useState(false);
+const [dob, setDob] = useState<Date | null>(null);
+
+const handleDateChange = (event: any, selectedDate?: Date) => {
+  setShowDatePicker(Platform.OS === 'ios'); // keep open on iOS
+  if (selectedDate) {
+    setDob(selectedDate);
+    handleInputChange('dateOfBirth', format(selectedDate, 'dd/MM/yyyy'));
+  }
+};
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -78,19 +91,27 @@ export default function BiodataScreen() {
       const response = await personalDetails(formData, token);
   
       if (response.success) {
-      toast.success('Personal details saved successfully');
-       
+      Toast.show({
+        type: 'success',
+        text1: 'Personal details saved successfully'
+      });
       console.log('Personal details saved successfully: ',response.data);
   
       navigation.navigate('DocumentUpload', {token,email});
       } else {
-        toast.error(response.message || "Saving personal details failed");
+        Toast.show({
+          type: 'error',
+          text1: response.message || "Saving personal details failed"
+        });
         console.warn('saving personal details failed:', response.message);
         
       }
     } catch (err) {
       console.error('Error saving personal details:', err);
-      toast.error("An error occurred while saving personal details");
+      Toast.show({
+        type: 'error',
+        text1: "An error occurred while saving personal details"
+      });
     } finally {
       setLoading(false);
     }
@@ -122,7 +143,7 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
         <View style={[styles.section, { backgroundColor: theme.cardBackgroundColor }]}>
           <Text style={[styles.sectionTitle, { color: theme.textColor }]}>Basic Information</Text>
           
-          <Text style={styles.label}>First Name *</Text>
+          <Text style={styles.label}>First Name <Text style={styles.required}>*</Text></Text>
           <TextInput
             style={[styles.input, { borderColor: theme.borderColor }]}
             placeholder="Enter your first name"
@@ -130,7 +151,7 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
             onChangeText={(value) => handleInputChange('firstName', value)}
           />
 
-          <Text style={styles.label}>Last Name *</Text>
+          <Text style={styles.label}>Last Name <Text style={styles.required}>*</Text></Text>
           <TextInput
             style={[styles.input, { borderColor: theme.borderColor }]}
             placeholder="Enter your last name"
@@ -146,7 +167,7 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
             onChangeText={(value) => handleInputChange('middleName', value)}
           />
 
-           <Text style={styles.label}>Gender *</Text>
+           <Text style={styles.label}>Gender <Text style={styles.required}>*</Text></Text>
          
            <Picker
            selectedValue={formData.gender}
@@ -159,7 +180,7 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
          </Picker>
         
 
-         <Text style={styles.label}>Title *</Text>
+         <Text style={styles.label}>Title <Text style={styles.required}>*</Text></Text>
         
          <Picker
          selectedValue={formData.title}
@@ -174,7 +195,7 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
          </Picker>
 
 
-         <Text style={styles.label}>Marital Status *</Text>
+         <Text style={styles.label}>Marital Status <Text style={styles.required}>*</Text></Text>
          
          <Picker
           selectedValue={formData.maritalStatus}
@@ -191,15 +212,28 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
 
 
 
-          <Text style={styles.label}>Date of Birth *</Text>
-          <TextInput
-            style={[styles.input, { borderColor: theme.borderColor }]}
-            placeholder="DD/MM/YYYY"
-            value={formData.dateOfBirth}
-            onChangeText={(value) => handleInputChange('dateOfBirth', value)}
-          />
+          <Text style={styles.label}>Date of Birth <Text style={styles.required}>*</Text></Text>
+<TouchableOpacity
+  style={[styles.input, { borderColor: theme.borderColor, justifyContent: 'center' }]}
+  onPress={() => setShowDatePicker(true)}
+>
+  <Text style={{ color: dob ? '#000' : '#888' }}>
+    {dob ? format(dob, 'dd/MM/yyyy') : 'Select your date of birth'}
+  </Text>
+</TouchableOpacity>
 
-           <Text style={styles.label}>Citizen ID *</Text>
+{showDatePicker && (
+  <DateTimePicker
+    value={dob || new Date(2000, 0, 1)}
+    mode="date"
+    display="default"
+    maximumDate={new Date()}
+    onChange={handleDateChange}
+  />
+)}
+
+
+           <Text style={styles.label}>Citizen ID <Text style={styles.required}>*</Text></Text>
           <TextInput
             style={[styles.input, { borderColor: theme.borderColor }]}
             placeholder="e.g 123456/7/1"

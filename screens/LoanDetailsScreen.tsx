@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { toast } from "sonner-native";
+import Toast from 'react-native-toast-message';
 import {
   SafeAreaView,
   View,
@@ -78,16 +78,25 @@ export default function LoanDetailsScreen() {
       );
 
       if (response.success) {
-        toast.success('Loan details have been saved successfully');
+        Toast.show({
+          type: 'success',
+          text1: 'Loan details have been saved successfully'
+        });
         console.log('Loan details have been saved successfully: ', response.data);
         navigation.navigate('Signature', { email, token });
       } else {
         console.warn('Saving loan details failed:', response.message);
-        toast.error(response.message || "Saving loan details failed");
+        Toast.show({
+          type: 'error',
+          text1: response.message || "Saving loan details failed"
+        });
       }
     } catch (err) {
       console.error('Error saving loan details:', err);
-      toast.error("An error occurred while saving loan details");
+      Toast.show({
+        type: 'error',
+        text1: "An error occurred while saving loan details"
+      });
     } finally {
       setLoading(false);
     }

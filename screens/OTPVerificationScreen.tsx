@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { verifyOtp } from '../api';
-import { toast } from "sonner-native";
+import Toast from 'react-native-toast-message';
 import { 
   SafeAreaView, 
   Text, 
@@ -33,7 +33,10 @@ const inputs = Array(6)
   const handleVerify = async () => {
   const fullOtp = otpDigits.join('');
   if (fullOtp.length < 6) {
-    toast.error('Please enter complete OTP');
+    Toast.show({
+      type: 'error',
+      text1: 'Please enter complete OTP'
+    });
     console.log('Please enter complete OTP');
     return;
   }
@@ -44,16 +47,25 @@ const inputs = Array(6)
     const response = await verifyOtp(fullOtp, email,token);
 
     if (response.success) {
-      toast.success('OTP Verified successfully');
+      Toast.show({
+        type: 'success',
+        text1: 'OTP Verified successfully'
+      });
       console.log('OTP Verified:', response.data);
       navigation.navigate('Biodata', { email, mobile,token });
     } else {
       console.warn('OTP Verification failed:', response.message);
-      toast.error(response.message || "OTP Verification failed");
+      Toast.show({
+        type: 'error',
+        text1: response.message || "OTP Verification failed"
+      });
     }
   } catch (err) {
     console.error('Error verifying OTP:', err);
-    toast.error("An error occurred while verifying OTP");
+    Toast.show({
+      type: 'error',
+      text1: "An error occurred while verifying OTP"
+    });
   } finally {
     setLoading(false);
   }

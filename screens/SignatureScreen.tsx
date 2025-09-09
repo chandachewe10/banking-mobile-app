@@ -1,5 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState } from "react";
 import { toast } from "sonner-native";
+import Toast from 'react-native-toast-message';
 import {
   SafeAreaView,
   View,
@@ -7,17 +8,19 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
-  ScrollView,
   Image as RNImage,
-  ActivityIndicator
-} from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { useTheme } from '../theme';
-import {signature} from '../api';
+  ActivityIndicator,
+  Dimensions,
+} from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { useTheme } from "../theme";
+import { signature } from "../api";
 
-// @ts-ignore: Only available on web
-import SignatureCanvas from 'react-signature-canvas';
+// Web signature pad
+// @ts-ignore
+import SignatureCanvas from "react-signature-canvas";
+// Native signature pad
+import Signature from "react-native-signature-canvas";
 
 export default function SignatureScreen() {
   const navigation = useNavigation();
@@ -25,59 +28,64 @@ export default function SignatureScreen() {
   const theme = useTheme();
   const { email, token } = route.params;
   const [signatureUri, setSignatureUri] = useState<string | null>(null);
-  const [agreed, setAgreed] = useState(false);
   const sigCanvasRef = useRef<any>(null);
+  const signatureRef = useRef<any>(null);
   const [loading, setLoading] = useState(false);
-  const isWeb = Platform.OS === 'web';
+  const isWeb = Platform.OS === "web";
+  const isAndroid = Platform.OS === "android";
 
-  const handleCaptureSignature = async () => {
-    if (!isWeb) {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') return;
+  // Use most of the screen for signature
+  const screenHeight = Dimensions.get("window").height;
+  const signaturePadHeight = Math.max(300, screenHeight * 0.6);
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.8,
+  /** --- Handlers --- **/
+  const handleSubmit = async () => {
+    if (!signatureUri) {
+      Toast.show({
+        type: 'error',
+        text1: "Please provide a signature first"
       });
+      return;
+    }
 
-      if (!result.canceled && result.assets?.length > 0) {
-        setSignatureUri(result.assets[0].uri);
+    setLoading(true);
+    try {
+      const response = await signature(signatureUri, email, token);
+
+      if (response.success) {
+        Toast.show({
+          type: 'success',
+          text1: "Signature has been saved successfully"
+        });
+        const caseNumber = response.data.data.caseNumber;
+        navigation.navigate("Confirmation", { email, token, caseNumber });
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: response.message || "Signature saving failed"
+        });
       }
+    } catch (err) {
+      console.error("Error saving signature");
+      Toast.show({
+        type: 'error',
+        text1: "An error occurred while saving signature"
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    
-        try {
-          const response = await signature(signatureUri, email, token);
-
-          if (response.success) {
-            toast.success('Signature has been saved successfully');
-            const caseNumber = response.data.data.caseNumber
-            console.log('Signature has been saved successfully: ', response.data);
-    
-            navigation.navigate('Confirmation', { email, token, caseNumber });
-          } else {
-            console.warn('saving signature details failed:', response.message);
-             toast.error(response.message || "Signature saving failed");
-          }
-        } catch (err) {
-          console.error('Error saving signature details:', err);
-          toast.error("An error occurred while saving signature");
-        } finally {
-          setLoading(false);
-        }
-    
-    
-  };
-
-  const isValid = agreed && !!signatureUri;
-
   const handleSaveWebSignature = () => {
-    const dataUrl = sigCanvasRef.current?.getTrimmedCanvas().toDataURL('image/png');
+    const dataUrl = sigCanvasRef.current
+      ?.getTrimmedCanvas()
+      .toDataURL("image/png");
     if (dataUrl) {
       setSignatureUri(dataUrl);
+      Toast.show({
+        type: 'success',
+        text1: "Signature saved"
+      });
     }
   };
 
@@ -86,157 +94,203 @@ export default function SignatureScreen() {
     setSignatureUri(null);
   };
 
+  // Native signature handlers
+  const handleOK = (sig: string) => {
+    console.log("Signature saved as base64");
+    setSignatureUri(sig);
+    Toast.show({
+      type: 'success',
+      text1: "Signature saved"
+    });
+  };
+
+  const handleClearNative = () => {
+    setSignatureUri(null);
+  };
+
+  // Custom clear function for Android
+  const handleAndroidClear = () => {
+    if (signatureRef.current) {
+      signatureRef.current.clearSignature();
+      setSignatureUri(null);
+    }
+  };
+
+  // Custom save function for Android
+  const handleAndroidSave = () => {
+    if (signatureRef.current) {
+      signatureRef.current.readSignature();
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.title, { color: theme.textColor }]}>Terms & Conditions</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
+      <View style={styles.content}>
+        {/* Simple header */}
+        <Text style={[styles.title, { color: theme.textColor }]}>
+          Please Sign Below
+        </Text>
 
-        <View style={[styles.termsBox, { borderColor: theme.borderColor }]}>
-          <ScrollView style={styles.termsScroll}>
-            <Text style={[styles.termsContent, { color: theme.textColor }]}>
-              Welcome to Sentinel MDC. By submitting this application, you agree:
-              {'\n\n'}1. We may verify your identity and credit information.
-              {'\n\n'}2. To pay all fees, interest, and charges as outlined.
-              {'\n\n'}3. That false information may lead to rejection.
-              {'\n\n'}4. Your data will be processed per our Privacy Policy.
-              {'\n\n'}5. You consent to electronic communications.
-              {'\n\n'}Thank you for trusting us with your application.
-            </Text>
-          </ScrollView>
-        </View>
-
-        <View style={styles.termsContainer}>
-          <TouchableOpacity
-            style={[
-              styles.checkbox,
-              {
-                borderColor: theme.primaryColor,
-                backgroundColor: agreed ? theme.primaryColor : 'transparent',
-              },
-            ]}
-            onPress={() => setAgreed(!agreed)}
-          />
-          <Text style={[styles.termsText, { color: theme.textColor }]}>
-            I accept all Terms & Conditions
-          </Text>
-        </View>
-
-        <View style={[styles.signatureBox, { borderColor: theme.borderColor }]}>
+        {/* Signature Area - Takes most of the screen */}
+        <View
+          style={[
+            styles.signatureBox,
+            { 
+              borderColor: theme.borderColor, 
+              height: signaturePadHeight,
+              backgroundColor: "#FFF"
+            },
+          ]}
+        >
           {signatureUri ? (
-            <RNImage source={{ uri: signatureUri }} style={styles.signatureImage} />
+            <RNImage
+              source={{ uri: signatureUri }}
+              style={styles.signatureImage}
+              resizeMode="contain"
+            />
           ) : isWeb ? (
             <SignatureCanvas
               ref={sigCanvasRef}
               penColor="black"
               backgroundColor="white"
-              canvasProps={{ width: 300, height: 200, className: 'sigCanvas' }}
+              canvasProps={{
+                width: Dimensions.get("window").width - 40,
+                height: signaturePadHeight - 20,
+                className: "sigCanvas",
+              }}
             />
           ) : (
-            <Text style={[styles.placeholder, { color: theme.textColor }]}>
-              No signature captured
-            </Text>
+            <Signature
+              ref={signatureRef}
+              onOK={handleOK}
+              onClear={handleClearNative}
+              descriptionText="Sign in the box"
+              clearText=""
+              confirmText=""
+              autoClear={false}
+              imageType="image/png"
+              style={{ 
+                flex: 1,
+                backgroundColor: "#FFF",
+              }}
+              webStyle={`.m-signature-pad {box-shadow: none; border: none; margin: 0;}`}
+            />
           )}
         </View>
 
-        {isWeb ? (
-          <>
+        {/* Action Buttons */}
+        <View style={styles.buttonContainer}>
+          {/* Clear Button */}
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              { backgroundColor: theme.warningColor || "#FF3B30" },
+            ]}
+            onPress={isWeb ? handleClearWebSignature : handleAndroidClear}
+            disabled={!!signatureUri}
+          >
+            <Text style={styles.buttonText}>Clear</Text>
+          </TouchableOpacity>
+
+          {/* Save Button (only show if no signature yet) */}
+          {!signatureUri && (
             <TouchableOpacity
-              style={[styles.captureButton, { backgroundColor: theme.primaryColor }]}
-              onPress={handleSaveWebSignature}
+              style={[
+                styles.actionButton,
+                { backgroundColor: theme.primaryColor },
+              ]}
+              onPress={isWeb ? handleSaveWebSignature : handleAndroidSave}
             >
               <Text style={styles.buttonText}>Save Signature</Text>
             </TouchableOpacity>
+          )}
 
+          {/* Submit Button (only show after signature is saved) */}
+          {signatureUri && (
             <TouchableOpacity
-              style={[styles.captureButton, { backgroundColor: theme.dangerColor || 'red' }]}
-              onPress={handleClearWebSignature}
+              style={[
+                styles.submitButton,
+                { backgroundColor: theme.successColor },
+              ]}
+              onPress={handleSubmit}
+              disabled={loading}
             >
-              <Text style={styles.buttonText}>Clear Signature</Text>
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.buttonText}>Submit Application</Text>
+              )}
             </TouchableOpacity>
-          </>
-        ) : (
-          <TouchableOpacity
-            style={[styles.captureButton, { backgroundColor: theme.primaryColor }]}
-            onPress={handleCaptureSignature}
-          >
-            <Text style={styles.buttonText}>
-              {signatureUri ? 'Retake Signature' : 'Capture Signature'}
-            </Text>
-          </TouchableOpacity>
-        )}
+          )}
+        </View>
 
-        <TouchableOpacity
-          style={[
-            styles.submitButton,
-            { backgroundColor: theme.successColor, opacity: isValid ? 1 : 0.6 },
-          ]}
-          onPress={handleSubmit}
-          disabled={!isValid || loading}
-        >
-
-
-          {loading ? (
-                        <ActivityIndicator color="#FFFFFF" />
-                      ) : (
-                       <Text style={styles.buttonText}>Submit Application</Text>
-                      )}
-          
-        </TouchableOpacity>
-      </ScrollView>
+        {/* Instructions */}
+        <Text style={[styles.instruction, { color: theme.textColor }]}>
+          {signatureUri 
+            ? "Signature saved. Press 'Submit Application' to continue."
+            : "Draw your signature in the box above, then press 'Save Signature'"
+          }
+        </Text>
+      </View>
     </SafeAreaView>
   );
 }
 
+/** --- Styles --- **/
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
-  content: { padding: 20 },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 12 },
-  termsBox: {
-    height: 200,
-    borderWidth: 1,
-    borderRadius: 6,
-    marginBottom: 12,
-    backgroundColor: '#FFF',
+  container: { 
+    flex: 1,
   },
-  termsScroll: { padding: 10 },
-  termsContent: { fontSize: 14, lineHeight: 20 },
-  termsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  content: { 
+    flex: 1,
+    padding: 20,
+    justifyContent: 'space-between',
+  },
+  title: { 
+    fontSize: 22, 
+    fontWeight: "bold", 
     marginBottom: 20,
+    textAlign: "center",
   },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 2,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  termsText: { fontSize: 14, flexShrink: 1 },
   signatureBox: {
-    height: 200,
     borderWidth: 2,
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
     borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    backgroundColor: '#FFF',
+    marginBottom: 20,
+    overflow: "hidden",
   },
-  placeholder: { fontSize: 16 },
-  signatureImage: { width: '100%', height: '100%', borderRadius: 8 },
-  captureButton: {
-    height: 48,
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
+  signatureImage: { 
+    width: "100%", 
+    height: "100%", 
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
     marginBottom: 16,
+  },
+  actionButton: {
+    flex: 1,
+    height: 50,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
   },
   submitButton: {
-    height: 48,
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
+    flex: 1,
+    height: 50,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  buttonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+  buttonText: { 
+    color: "#FFF", 
+    fontSize: 16, 
+    fontWeight: "bold" 
+  },
+  instruction: {
+    textAlign: "center",
+    fontSize: 14,
+    marginTop: 10,
+  },
 });
