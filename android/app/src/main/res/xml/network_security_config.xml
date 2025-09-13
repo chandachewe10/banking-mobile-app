@@ -1,6 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- Base configuration for API 24+ (Android 7.0+) -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+    
+    <!-- Special configuration for older Android versions (API 24-27) -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">sentinel-loans.sentinel365.net</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain> <!-- For emulator -->
+        <domain includeSubdomains="true">localhost</domain>
     </domain-config>
+    
+    <!-- Debug configuration for development -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
 </network-security-config>
