@@ -38,7 +38,7 @@ export default function DocumentUploadScreen() {
     if (Platform.OS !== 'web') {
       const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
       const { status: libraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+
       if (cameraStatus !== 'granted' || libraryStatus !== 'granted') {
         Alert.alert(
           'Permissions Required',
@@ -94,13 +94,13 @@ export default function DocumentUploadScreen() {
     }
   };
 
-  const handleCapture = async (documentType: 'idFront' | 'idBack' | 'selfie' | 'bankStatement') => {
+  const handleCapture = async (documentType: 'idFront' | 'idBack' | 'selfie') => {
     const hasPermission = await requestPermissions();
     if (!hasPermission) return;
 
     showSourceOptions(documentType, async (source) => {
       let pickerResult;
-      
+
       try {
         if (source === 'camera') {
           pickerResult = await ImagePicker.launchCameraAsync({
@@ -139,7 +139,6 @@ export default function DocumentUploadScreen() {
           case 'idFront': setIdFront(uri); break;
           case 'idBack': setIdBack(uri); break;
           case 'selfie': setSelfie(uri); break;
-          case 'bankStatement': setBankStatement(uri); break;
         }
       } catch (error) {
         console.error('Error picking image:', error);
@@ -154,26 +153,22 @@ export default function DocumentUploadScreen() {
 
   const convertImageToBase64 = async (uri: string): Promise<string> => {
     try {
-      // For Android 9+ compatibility, use a different approach
       if (Platform.OS === 'android') {
-        // Create a copy of the file to avoid issues with Android content URIs
         const fileUri = `${FileSystem.cacheDirectory}${Date.now()}.jpg`;
         await FileSystem.copyAsync({ from: uri, to: fileUri });
-        
+
         const base64 = await FileSystem.readAsStringAsync(fileUri, {
           encoding: FileSystem.EncodingType.Base64,
         });
-        
-        // Clean up temporary file
+
         try {
           await FileSystem.deleteAsync(fileUri, { idempotent: true });
         } catch (e) {
           console.warn('Could not delete temp file:', e);
         }
-        
+
         return `data:image/jpeg;base64,${base64}`;
       } else {
-        // For iOS and web, use the original approach
         const base64 = await FileSystem.readAsStringAsync(uri, {
           encoding: FileSystem.EncodingType.Base64,
         });
@@ -194,6 +189,39 @@ export default function DocumentUploadScreen() {
     } catch (error) {
       console.error('Error converting PDF to base64:', error);
       throw error;
+    }
+  };
+
+  const handlePickBankStatement = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+
+      const asset = result.assets?.[0];
+      if (!asset?.uri) return;
+
+      const isValidSize = await checkFileSize(asset.uri);
+      if (!isValidSize) {
+        Toast.show({
+          type: 'error',
+          text1: 'File too large',
+          text2: 'Please select a file smaller than 10MB'
+        });
+        return;
+      }
+
+      setBankStatement(asset.uri);
+    } catch (error) {
+      console.error('Error picking bank statement PDF:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error selecting bank statement PDF',
+        text2: 'Please try again'
+      });
     }
   };
 
@@ -221,15 +249,9 @@ export default function DocumentUploadScreen() {
 
       const uri = asset.uri;
       switch (slot) {
-        case 1:
-          setPayslip1(uri);
-          break;
-        case 2:
-          setPayslip2(uri);
-          break;
-        case 3:
-          setPayslip3(uri);
-          break;
+        case 1: setPayslip1(uri); break;
+        case 2: setPayslip2(uri); break;
+        case 3: setPayslip3(uri); break;
       }
     } catch (error) {
       console.error('Error picking payslip PDF:', error);
@@ -245,10 +267,9 @@ export default function DocumentUploadScreen() {
     setLoading(true);
 
     try {
-      // Convert all images to base64 before uploading
       const convertIfNeeded = async (uri: string | null): Promise<string | null> => {
         if (!uri) return null;
-        if (uri.startsWith('data:image')) return uri; // Already base64
+        if (uri.startsWith('data:image')) return uri;
         return await convertImageToBase64(uri);
       };
 
@@ -264,7 +285,7 @@ export default function DocumentUploadScreen() {
         convertIfNeeded(idFront),
         convertIfNeeded(idBack),
         convertIfNeeded(selfie),
-        convertIfNeeded(bankStatement),
+        bankStatement ? convertPdfToBase64(bankStatement) : Promise.resolve(null),
         payslip1 ? convertPdfToBase64(payslip1) : Promise.resolve(null),
         payslip2 ? convertPdfToBase64(payslip2) : Promise.resolve(null),
         payslip3 ? convertPdfToBase64(payslip3) : Promise.resolve(null),
@@ -306,8 +327,7 @@ export default function DocumentUploadScreen() {
     }
   };
 
-  // Require ID front, ID back, selfie, and three payslips for navigation
-  const canProceed = idFront && idBack && selfie && payslip1 && payslip2 && payslip3;
+  const canProceed = idFront && idBack && selfie && bankStatement && payslip1 && payslip2 && payslip3;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -320,17 +340,10 @@ export default function DocumentUploadScreen() {
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
           <Text style={[styles.cardTitle, { color: theme.textColor }]}>ID Card (Front) <Text style={styles.required}>*</Text></Text>
           <TouchableOpacity
-            style={[
-              styles.uploadButton,
-              {
-                backgroundColor: idFront ? theme.successColor : theme.primaryColor
-              }
-            ]}
+            style={[styles.uploadButton, { backgroundColor: idFront ? theme.successColor : theme.primaryColor }]}
             onPress={() => handleCapture('idFront')}
           >
-            <Text style={styles.buttonText}>
-              {idFront ? 'Uploaded' : 'Upload'}
-            </Text>
+            <Text style={styles.buttonText}>{idFront ? 'Uploaded' : 'Upload'}</Text>
           </TouchableOpacity>
           {idFront && <Text style={styles.fileInfo}>File selected</Text>}
         </View>
@@ -338,17 +351,10 @@ export default function DocumentUploadScreen() {
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
           <Text style={[styles.cardTitle, { color: theme.textColor }]}>ID Card (Back) <Text style={styles.required}>*</Text></Text>
           <TouchableOpacity
-            style={[
-              styles.uploadButton,
-              {
-                backgroundColor: idBack ? theme.successColor : theme.primaryColor
-              }
-            ]}
+            style={[styles.uploadButton, { backgroundColor: idBack ? theme.successColor : theme.primaryColor }]}
             onPress={() => handleCapture('idBack')}
           >
-            <Text style={styles.buttonText}>
-              {idBack ? 'Uploaded' : 'Upload'}
-            </Text>
+            <Text style={styles.buttonText}>{idBack ? 'Uploaded' : 'Upload'}</Text>
           </TouchableOpacity>
           {idBack && <Text style={styles.fileInfo}>File selected</Text>}
         </View>
@@ -356,99 +362,58 @@ export default function DocumentUploadScreen() {
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
           <Text style={[styles.cardTitle, { color: theme.textColor }]}>Selfie <Text style={styles.required}>*</Text></Text>
           <TouchableOpacity
-            style={[
-              styles.uploadButton,
-              {
-                backgroundColor: selfie ? theme.successColor : theme.primaryColor
-              }
-            ]}
+            style={[styles.uploadButton, { backgroundColor: selfie ? theme.successColor : theme.primaryColor }]}
             onPress={() => handleCapture('selfie')}
           >
-            <Text style={styles.buttonText}>
-              {selfie ? 'Uploaded' : 'Upload'}
-            </Text>
+            <Text style={styles.buttonText}>{selfie ? 'Uploaded' : 'Upload'}</Text>
           </TouchableOpacity>
           {selfie && <Text style={styles.fileInfo}>File selected</Text>}
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
-          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Bank Statement(s) <Text style={styles.required}>*</Text></Text>
+          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Bank Statement (PDF) <Text style={styles.required}>*</Text></Text>
           <TouchableOpacity
-            style={[
-              styles.uploadButton,
-              {
-                backgroundColor: bankStatement ? theme.successColor : theme.primaryColor
-              }
-            ]}
-            onPress={() => handleCapture('bankStatement')}
+            style={[styles.uploadButton, { backgroundColor: bankStatement ? theme.successColor : theme.primaryColor }]}
+            onPress={handlePickBankStatement}
           >
-            <Text style={styles.buttonText}>
-              {bankStatement ? 'Uploaded' : 'Upload'}
-            </Text>
+            <Text style={styles.buttonText}>{bankStatement ? 'Uploaded' : 'Upload PDF'}</Text>
           </TouchableOpacity>
-          {bankStatement && <Text style={styles.fileInfo}>File selected</Text>}
+          {bankStatement && <Text style={styles.fileInfo}>PDF selected</Text>}
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
           <Text style={[styles.cardTitle, { color: theme.textColor }]}>Payslips (PDF) <Text style={styles.required}>*</Text></Text>
-          
+
           <Text style={styles.payslipLabel}>Payslip 1</Text>
           <TouchableOpacity
-            style={[
-              styles.uploadButton,
-              {
-                backgroundColor: payslip1 ? theme.successColor : theme.primaryColor
-              }
-            ]}
+            style={[styles.uploadButton, { backgroundColor: payslip1 ? theme.successColor : theme.primaryColor }]}
             onPress={() => handlePickPayslip(1)}
           >
-            <Text style={styles.buttonText}>
-              {payslip1 ? 'Uploaded' : 'Upload PDF'}
-            </Text>
+            <Text style={styles.buttonText}>{payslip1 ? 'Uploaded' : 'Upload PDF'}</Text>
           </TouchableOpacity>
           {payslip1 && <Text style={styles.fileInfo}>PDF selected</Text>}
 
           <Text style={styles.payslipLabel}>Payslip 2</Text>
           <TouchableOpacity
-            style={[
-              styles.uploadButton,
-              {
-                backgroundColor: payslip2 ? theme.successColor : theme.primaryColor
-              }
-            ]}
+            style={[styles.uploadButton, { backgroundColor: payslip2 ? theme.successColor : theme.primaryColor }]}
             onPress={() => handlePickPayslip(2)}
           >
-            <Text style={styles.buttonText}>
-              {payslip2 ? 'Uploaded' : 'Upload PDF'}
-            </Text>
+            <Text style={styles.buttonText}>{payslip2 ? 'Uploaded' : 'Upload PDF'}</Text>
           </TouchableOpacity>
           {payslip2 && <Text style={styles.fileInfo}>PDF selected</Text>}
 
           <Text style={styles.payslipLabel}>Payslip 3</Text>
           <TouchableOpacity
-            style={[
-              styles.uploadButton,
-              {
-                backgroundColor: payslip3 ? theme.successColor : theme.primaryColor
-              }
-            ]}
+            style={[styles.uploadButton, { backgroundColor: payslip3 ? theme.successColor : theme.primaryColor }]}
             onPress={() => handlePickPayslip(3)}
           >
-            <Text style={styles.buttonText}>
-              {payslip3 ? 'Uploaded' : 'Upload PDF'}
-            </Text>
+            <Text style={styles.buttonText}>{payslip3 ? 'Uploaded' : 'Upload PDF'}</Text>
           </TouchableOpacity>
           {payslip3 && <Text style={styles.fileInfo}>PDF selected</Text>}
         </View>
 
         <TouchableOpacity
-          style={[
-            styles.button,
-            {
-              backgroundColor: theme.primaryColor,
-              opacity: canProceed ? 1 : 0.7
-            }
-          ]}
+          style={[styles.button, { backgroundColor: theme.primaryColor, opacity: canProceed ? 1 : 0.7 }]}
           onPress={handleNext}
           disabled={!canProceed || loading}
         >

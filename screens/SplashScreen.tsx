@@ -31,9 +31,7 @@ export default function SplashScreen() {
         <Text style={[styles.appName, { color: theme.textColor }]}>
           KYC Self-Onboarding
         </Text>
-        <Text style={[styles.platformText, { color: theme.secondaryColor }]}>
-          Platform: {currentPlatform}
-        </Text>
+
       </View>
       <ActivityIndicator size="large" color={theme.primaryColor} style={styles.loader} />
     </View>

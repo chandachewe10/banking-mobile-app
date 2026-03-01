@@ -9,7 +9,7 @@ const channelName = Constants.manifest?.updates?.channel || 'default';
 
 // Determine base URL based on Android version
 export const API_BASE = (() => {
-  const httpsBase = 'http://banking-web-app.test';
+  const httpsBase = 'https://127d-41-223-117-75.ngrok-free.app';
 
   // For Android 7 and 8 (API levels 24-27), we may need to use HTTP
   if (Platform.OS === 'android' && Platform.Version && Platform.Version < 28) {
@@ -22,7 +22,7 @@ export const API_BASE = (() => {
 })();
 
 // Fallback HTTP base URL for older Android versions
-export const HTTP_API_BASE = 'http://banking-web-app.test';
+export const HTTP_API_BASE = 'https://127d-41-223-117-75.ngrok-free.app';
 
 interface ApiResponse<T = any> {
   success: boolean;
