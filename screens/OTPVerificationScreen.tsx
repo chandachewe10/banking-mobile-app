@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { verifyOtp } from '../api';
+import { verifyOtp, resendOtp } from '../api';
 import Toast from 'react-native-toast-message';
 import { 
   SafeAreaView, 
@@ -26,6 +26,8 @@ const inputs = Array(6)
   const { email, mobile, token } = route.params;
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendSeconds, setResendSeconds] = useState(60);
+  const [resendLoading, setResendLoading] = useState(false);
 
 
   
@@ -71,12 +73,60 @@ const inputs = Array(6)
   }
 };
 
+const handleResend = async () => {
+  if (resendSeconds > 0 || resendLoading) {
+    return;
+  }
+
+  setResendLoading(true);
+
+  try {
+    const response = await resendOtp(email, token);
+
+    if (response.success) {
+      Toast.show({
+        type: 'success',
+        text1: 'OTP resent successfully'
+      });
+      setResendSeconds(60);
+    } else {
+      Toast.show({
+        type: 'error',
+        text1: response.message || 'Failed to resend OTP'
+      });
+    }
+  } catch (err) {
+    console.error('Error resending OTP:', err);
+    Toast.show({
+      type: 'error',
+      text1: 'An error occurred while resending OTP'
+    });
+  } finally {
+    setResendLoading(false);
+  }
+};
+
+useEffect(() => {
+  if (resendSeconds === 0) {
+    return;
+  }
+
+  const interval = setInterval(() => {
+    setResendSeconds(prev => (prev > 0 ? prev - 1 : 0));
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, [resendSeconds]);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Text style={[styles.title, { color: theme.textColor }]}>Verify OTP</Text>
         <Text style={[styles.subtitle, { color: theme.textColor }]}>
           Enter the OTP sent to {email} and {mobile}
+        </Text>
+        <Text style={[styles.hint, { color: theme.textColor }]}>
+          You can resend the OTP after 60 seconds.
         </Text>
         
         <View style={styles.form}>
@@ -133,6 +183,23 @@ const inputs = Array(6)
               <Text style={styles.buttonText}>Verify</Text>
             )}
           </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[
+              styles.resendButton,
+              { borderColor: theme.borderColor, opacity: resendSeconds === 0 && !resendLoading ? 1 : 0.6 }
+            ]}
+            onPress={handleResend}
+            disabled={resendSeconds > 0 || resendLoading}
+          >
+            {resendLoading ? (
+              <ActivityIndicator color={theme.primaryColor} />
+            ) : (
+              <Text style={[styles.resendButtonText, { color: theme.primaryColor }]}>
+                {resendSeconds > 0 ? `Resend OTP in ${resendSeconds}s` : 'Resend OTP'}
+              </Text>
+            )}
+          </TouchableOpacity>
         </View>
         
         <Text style={styles.platformInfo}>
@@ -160,7 +227,11 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    marginBottom: 30,
+    marginBottom: 10,
+  },
+  hint: {
+    fontSize: 13,
+    marginBottom: 20,
   },
   form: {
     marginBottom: 20,
@@ -207,5 +278,16 @@ otpBox: {
   textAlign: 'center',
   fontSize: 18,
 },
-
+  resendButton: {
+    height: 45,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  resendButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
 });

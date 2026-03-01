@@ -110,9 +110,7 @@ export default function SignUpScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.platformInfo}>
-          Current Platform: {Platform.OS || 'unknown'}
-        </Text>
+
       </View>
     </SafeAreaView>
   );

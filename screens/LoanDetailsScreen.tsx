@@ -129,11 +129,11 @@ export default function LoanDetailsScreen() {
           />
 
           <Text style={styles.label}>Loan Purpose <Text style={styles.required}>*</Text></Text>
-          <View>
+          <View style={[styles.pickerContainer, { borderColor: theme.borderColor }]}>
             <Picker
               selectedValue={loanPurpose}
               onValueChange={(itemValue) => setLoanPurpose(itemValue)}
-              style={[styles.input]}
+              style={styles.picker}
               dropdownIconColor={theme.textColor}
             >
               <Picker.Item label="Select loan purpose" value="" />
@@ -148,11 +148,11 @@ export default function LoanDetailsScreen() {
           </View>
 
           <Text style={styles.label}>Loan Tenure (Months) <Text style={styles.required}>*</Text></Text>
-          <View>
+          <View style={[styles.pickerContainer, { borderColor: theme.borderColor }]}>
             <Picker
               selectedValue={loanTenure}
               onValueChange={(itemValue) => setLoanTenure(itemValue)}
-              style={styles.input}
+              style={styles.picker}
               dropdownIconColor={theme.textColor}
             >
               <Picker.Item label="Select tenure" value="" />
@@ -347,8 +347,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     marginBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
+  },
+  picker: {
+    height: 50,
+    paddingHorizontal: 8,
+    color: '#000000',
   },
   required: {
   color: 'red',

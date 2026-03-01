@@ -2,7 +2,7 @@ import React, { useState ,useEffect} from 'react';
 import Toast from 'react-native-toast-message';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
-
+import * as Location from 'expo-location';
 import { 
   SafeAreaView, 
   View, 
@@ -31,6 +31,7 @@ export default function BiodataScreen() {
   const navigation = useNavigation();
   const theme = useTheme();
    const [loading, setLoading] = useState(false);
+   const [locating, setLocating] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -80,6 +81,71 @@ const handleDateChange = (event: any, selectedDate?: Date) => {
   handleInputChange('email', email); 
    handleInputChange('phoneNumber', mobile); 
 }, [email, mobile]);
+
+const handleUseCurrentLocation = async () => {
+  try {
+    setLocating(true);
+
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Toast.show({
+        type: 'error',
+        text1: 'Location permission denied',
+        text2: 'Enable location access in settings to use this feature.',
+      });
+      return;
+    }
+
+    const position = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+
+    const results = await Location.reverseGeocodeAsync({
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    });
+
+    if (!results || results.length === 0) {
+      Toast.show({
+        type: 'error',
+        text1: 'Unable to get address from location',
+      });
+      return;
+    }
+
+    const place = results[0];
+    const parts = [
+      place.name,
+      place.street,
+      place.subregion || place.city,
+      place.region,
+      place.postalCode,
+      place.country,
+    ].filter(Boolean);
+
+    const formattedAddress = parts.join(', ');
+    if (formattedAddress) {
+      handleInputChange('address', formattedAddress);
+      Toast.show({
+        type: 'success',
+        text1: 'Address updated from current location',
+      });
+    } else {
+      Toast.show({
+        type: 'error',
+        text1: 'Could not build address from location',
+      });
+    }
+  } catch (error) {
+    console.error('Error getting current location:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'Failed to get current location',
+    });
+  } finally {
+    setLocating(false);
+  }
+};
 
   const handleNext = async () =>  {
      console.log('starting saving personal details with token: ',token);
@@ -166,48 +232,46 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
             value={formData.middleName}
             onChangeText={(value) => handleInputChange('middleName', value)}
           />
-
-           <Text style={styles.label}>Gender <Text style={styles.required}>*</Text></Text>
-         
-           <Picker
-           selectedValue={formData.gender}
-           onValueChange={(value) => handleInputChange('gender', value)}
-           style={[styles.input, { borderColor: theme.borderColor }]}
-           >
-          <Picker.Item label="Select Gender" value="" />
-          <Picker.Item label="Male" value="male" />
-          <Picker.Item label="Female" value="female" />
-         </Picker>
+          
+          <Text style={styles.label}>Gender <Text style={styles.required}>*</Text></Text>
+          <View style={[styles.pickerWrapper, { borderColor: theme.borderColor }]}>
+            <Picker
+              selectedValue={formData.gender}
+              onValueChange={(value) => handleInputChange('gender', value)}
+            >
+              <Picker.Item label="Select Gender" value="" />
+              <Picker.Item label="Male" value="male" />
+              <Picker.Item label="Female" value="female" />
+            </Picker>
+          </View>
         
-
-         <Text style={styles.label}>Title <Text style={styles.required}>*</Text></Text>
+          <Text style={styles.label}>Title <Text style={styles.required}>*</Text></Text>
+          <View style={[styles.pickerWrapper, { borderColor: theme.borderColor }]}>
+            <Picker
+              selectedValue={formData.title}
+              onValueChange={(value) => handleInputChange('title', value)}
+            >
+              <Picker.Item label="Select Title" value="" />
+              <Picker.Item label="Mr" value="Mr" />
+              <Picker.Item label="Ms" value="Ms" />
+              <Picker.Item label="Mrs" value="Mrs" />
+              <Picker.Item label="Doctor" value="Doc" />
+            </Picker>
+          </View>
         
-         <Picker
-         selectedValue={formData.title}
-         onValueChange={(value) => handleInputChange('title', value)}
-        style={[styles.input, { borderColor: theme.borderColor }]}
-         >
-         <Picker.Item label="Select Title" value="" />
-         <Picker.Item label="Mr" value="Mr" />
-         <Picker.Item label="Ms" value="Ms" />
-         <Picker.Item label="Mrs" value="Mrs" />
-         <Picker.Item label="Doctor" value="Doc" />
-         </Picker>
-
-
-         <Text style={styles.label}>Marital Status <Text style={styles.required}>*</Text></Text>
-         
-         <Picker
-          selectedValue={formData.maritalStatus}
-          onValueChange={(value) => handleInputChange('maritalStatus', value)}
-         style={[styles.input, { borderColor: theme.borderColor }]}
-          >
-          <Picker.Item label="Select Marital Status" value="" />
-          <Picker.Item label="married" value="Married" />
-          <Picker.Item label="single" value="Single" />
-          <Picker.Item label="divorced" value="Divorced" />
-          <Picker.Item label="widowed" value="Widowed" />
-         </Picker>
+          <Text style={styles.label}>Marital Status <Text style={styles.required}>*</Text></Text>
+          <View style={[styles.pickerWrapper, { borderColor: theme.borderColor }]}>
+            <Picker
+              selectedValue={formData.maritalStatus}
+              onValueChange={(value) => handleInputChange('maritalStatus', value)}
+            >
+              <Picker.Item label="Select Marital Status" value="" />
+              <Picker.Item label="married" value="Married" />
+              <Picker.Item label="single" value="Single" />
+              <Picker.Item label="divorced" value="Divorced" />
+              <Picker.Item label="widowed" value="Widowed" />
+            </Picker>
+          </View>
        
 
 
@@ -270,9 +334,8 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
 
       {/* Country Picker */}
       <Text style={styles.label}>Country <Text style={styles.required}>*</Text></Text>
-      <View>
+      <View style={[styles.pickerWrapper, { borderColor: theme.borderColor }]}>
         <Picker
-        style={[styles.input, { borderColor: theme.borderColor }]}
           selectedValue={formData.country}
           onValueChange={(value) => {
             handleInputChange('country', value);
@@ -291,9 +354,8 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
       {provinces.length > 0 && (
         <>
           <Text style={styles.label}>Province <Text style={styles.required}>*</Text></Text>
-          <View>
+          <View style={[styles.pickerWrapper, { borderColor: theme.borderColor }]}>
             <Picker
-            style={[styles.input, { borderColor: theme.borderColor }]}
               selectedValue={formData.province}
               onValueChange={(value) => {
                 handleInputChange('province', value);
@@ -314,9 +376,8 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
       {districts.length > 0 && (
         <>
           <Text style={styles.label}>District <Text style={styles.required}>*</Text></Text>
-          <View>
+          <View style={[styles.pickerWrapper, { borderColor: theme.borderColor }]}>
             <Picker
-            style={[styles.input, { borderColor: theme.borderColor }]}
               selectedValue={formData.district}
               onValueChange={(value) => handleInputChange('district', value)}
             >
@@ -336,12 +397,26 @@ const [selectedDistrict, setSelectedDistrict] = useState('');
 
           <Text style={styles.label}>Address <Text style={styles.required}>*</Text></Text>
           <TextInput
-            style={[styles.input, { borderColor: theme.borderColor }]}
+            style={[styles.input, { borderColor: theme.borderColor, minHeight: 70, textAlignVertical: 'top' }]}
             placeholder="Enter your address"
             value={formData.address}
             onChangeText={(value) => handleInputChange('address', value)}
             multiline
           />
+          <TouchableOpacity
+            style={[styles.locationButton, { borderColor: theme.borderColor }]}
+            onPress={handleUseCurrentLocation}
+            disabled={locating}
+          >
+            {locating ? (
+              <ActivityIndicator size="small" color={theme.primaryColor} />
+            ) : (
+              <Text style={[styles.locationButtonText, { color: theme.primaryColor }]}>
+                Use current location
+              </Text>
+            )}
+          </TouchableOpacity>
+          <Text style={styles.helperText}>Or use your current GPS location</Text>
 
     
         </View>
@@ -558,11 +633,30 @@ const styles = StyleSheet.create({
     color: '#888',
   },
 
-   pickerWrapper: {
+  pickerWrapper: {
     borderWidth: 1,
-    borderColor: '#ccc',
     borderRadius: 8,
+    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
     overflow: 'hidden',
+  },
+  locationButton: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  locationButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 16,
   },
   required: {
   color: 'red',

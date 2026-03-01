@@ -9,20 +9,20 @@ const channelName = Constants.manifest?.updates?.channel || 'default';
 
 // Determine base URL based on Android version
 export const API_BASE = (() => {
-  const httpsBase = 'https://sentinel-loans.sentinel365.net';
-  
+  const httpsBase = 'http://banking-web-app.test';
+
   // For Android 7 and 8 (API levels 24-27), we may need to use HTTP
   if (Platform.OS === 'android' && Platform.Version && Platform.Version < 28) {
     console.warn('Using older Android version, HTTPS may have issues');
     // Try HTTPS first, but have fallback mechanism
     return httpsBase;
   }
-  
+
   return httpsBase;
 })();
 
 // Fallback HTTP base URL for older Android versions
-export const HTTP_API_BASE = 'http://sentinel-loans.sentinel365.net';
+export const HTTP_API_BASE = 'http://banking-web-app.test';
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -44,11 +44,11 @@ const addExpoHeaders = (headers: Record<string, string> = {}) => {
 // Enhanced fetch function with Android 7/8 compatibility
 const compatibleFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
   let response: Response;
-  
+
   try {
     // First try with HTTPS
     response = await fetch(`${API_BASE}${url}`, options);
-    
+
     // If request fails on older Android, try with HTTP fallback
     if (!response.ok && Platform.OS === 'android' && Platform.Version && Platform.Version < 28) {
       console.warn('HTTPS request failed, trying HTTP fallback for Android', Platform.Version);
@@ -59,7 +59,7 @@ const compatibleFetch = async (url: string, options: RequestInit = {}): Promise<
         throw new Error(`Network request failed: `);
       }
     }
-    
+
     return response;
   } catch (error) {
     // If HTTPS fails completely on older Android, try HTTP
@@ -73,34 +73,34 @@ const compatibleFetch = async (url: string, options: RequestInit = {}): Promise<
         throw new Error(`Network request failed: `);
       }
     }
-    
+
     throw error;
   }
 };
 
 export async function register(email: string, mobile: string): Promise<ApiResponse> {
   console.log(`Registering user with email: ${email}, mobile: ${mobile}, platform: ${currentPlatform}`);
-  
+
   const formData = new FormData();
   formData.append('email', email || '');
   formData.append('phone', mobile || '');
-  
+
   try {
     const response = await compatibleFetch('/api/register', {
       method: 'POST',
       headers: addExpoHeaders(),
       body: formData,
     });
-    
+
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Registration failed');
-  
+
     return {
       success: true,
       message: 'OTP sent successfully',
       data: data
     };
-  } catch (error: any) { 
+  } catch (error: any) {
     console.error('Registration error:', error);
     return {
       success: false,
@@ -111,11 +111,11 @@ export async function register(email: string, mobile: string): Promise<ApiRespon
 
 export async function verifyOtp(otp: string, email?: string, token?: string): Promise<ApiResponse> {
   console.log(`Verifying OTP: ${otp} for user: ${email}, platform: ${currentPlatform}`);
-  
+
   const formData = new FormData();
   formData.append('otp_code', otp);
   formData.append('email', email || '');
-  
+
   try {
     const response = await compatibleFetch('/api/verifyOtp', {
       method: 'POST',
@@ -125,7 +125,7 @@ export async function verifyOtp(otp: string, email?: string, token?: string): Pr
       },
       body: formData,
     });
-    
+
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'OTP verification failed');
     return data;
@@ -138,14 +138,42 @@ export async function verifyOtp(otp: string, email?: string, token?: string): Pr
   }
 }
 
+export async function resendOtp(email: string, token: string): Promise<ApiResponse> {
+  console.log(`Resending OTP for user: ${email}, platform: ${currentPlatform}`);
+
+  const formData = new FormData();
+  formData.append('email', email || '');
+
+  try {
+    const response = await compatibleFetch('/api/resendOtp', {
+      method: 'POST',
+      headers: {
+        ...addExpoHeaders(),
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Resend OTP failed');
+    return data;
+  } catch (error: any) {
+    console.error('Resend OTP error:', error);
+    return {
+      success: false,
+      message: error.message || 'Failed to resend OTP'
+    };
+  }
+}
+
 export async function personalDetails(biodata: any, token: string): Promise<ApiResponse> {
   console.log(`Saving user with data: ${JSON.stringify(biodata)}, platform: ${currentPlatform}`);
-  
+
   const formData = new FormData();
   Object.keys(biodata).forEach(key => {
     formData.append(key, biodata[key] || '');
   });
-  
+
   try {
     const response = await compatibleFetch('/api/personalDetails', {
       method: 'POST',
@@ -155,16 +183,16 @@ export async function personalDetails(biodata: any, token: string): Promise<ApiR
       },
       body: formData,
     });
-    
+
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Saving personal details failed');
-  
+
     return {
       success: true,
       message: 'Personal details saved successfully',
       data: data
     };
-  } catch (error: any) { 
+  } catch (error: any) {
     console.error('Personal Details error:', error);
     return {
       success: false,
@@ -174,12 +202,14 @@ export async function personalDetails(biodata: any, token: string): Promise<ApiR
 }
 
 export async function documentsUpload(
-  idFront: string, 
-  idBack: string, 
-  selfie: string, 
-  bankStatement: string, 
-  payslip: string, 
-  email: string, 
+  idFront: string,
+  idBack: string,
+  selfie: string,
+  bankStatement: string,
+  payslip1: string | null,
+  payslip2: string | null,
+  payslip3: string | null,
+  email: string,
   token: string
 ): Promise<ApiResponse> {
   console.log(`Saving Docs for user: ${email}, platform: ${currentPlatform}`);
@@ -189,7 +219,9 @@ export async function documentsUpload(
   formData.append('idBack', idBack);
   formData.append('selfie', selfie);
   formData.append('bankStatement', bankStatement);
-  formData.append('payslip', payslip);
+  if (payslip1) formData.append('payslip1', payslip1);
+  if (payslip2) formData.append('payslip2', payslip2);
+  if (payslip3) formData.append('payslip3', payslip3);
   formData.append('email', email);
 
   try {
@@ -201,16 +233,16 @@ export async function documentsUpload(
       },
       body: formData,
     });
-    
+
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Saving documents details failed');
-  
+
     return {
       success: true,
       message: 'Files saved successfully',
       data: data
     };
-  } catch (error: any) { 
+  } catch (error: any) {
     console.error('Files saving error:', error);
     return {
       success: false,
@@ -220,15 +252,15 @@ export async function documentsUpload(
 }
 
 export async function loanDetails(
-  amount: string, 
-  purpose: string, 
-  interestRate: any, 
-  tenure: string, 
-  arrangementFee: string, 
-  processingFee: string, 
-  insuranceFee: string, 
-  totalInterestFee: string, 
-  email: string, 
+  amount: string,
+  purpose: string,
+  interestRate: any,
+  tenure: string,
+  arrangementFee: string,
+  processingFee: string,
+  insuranceFee: string,
+  totalInterestFee: string,
+  email: string,
   token: string
 ): Promise<ApiResponse> {
   console.log(`Saving loan details for user: ${email}, platform: ${currentPlatform}`);
@@ -253,7 +285,7 @@ export async function loanDetails(
       },
       body: formData,
     });
-    
+
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Saving loan details failed');
 
@@ -287,7 +319,7 @@ export async function signature(signatureUri: string, email: string, token: stri
       },
       body: formData,
     });
-    
+
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Saving signature URI failed');
 
@@ -307,7 +339,7 @@ export async function signature(signatureUri: string, email: string, token: stri
 
 export async function submitKyc(payload: any): Promise<ApiResponse> {
   console.log(`Submitting KYC data, platform: ${currentPlatform}`);
-  
+
   try {
     // In a real app, this would be a fetch call to your API
     // const response = await compatibleFetch('/kyc/submit', {
@@ -318,12 +350,12 @@ export async function submitKyc(payload: any): Promise<ApiResponse> {
     // const data = await response.json();
     // if (!response.ok) throw new Error(data.message || 'KYC submission failed');
     // return data;
-    
+
     // For demo purposes, simulate a successful response
     return {
       success: true,
       message: 'KYC data submitted successfully',
-      data: { 
+      data: {
         ...payload,
         id: 'kyc-' + Date.now(),
         referenceNumber: 'KYC-' + Math.floor(100000 + Math.random() * 900000)
@@ -348,7 +380,7 @@ export const checkNetworkCompatibility = () => {
       recommendation: 'Ensure server supports TLS 1.2 and has valid certificates'
     };
   }
-  
+
   return {
     isOlderAndroid: false,
     version: Platform.Version,

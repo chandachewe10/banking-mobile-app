@@ -14,6 +14,7 @@ import {
   ActionSheetIOS
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { documentsUpload } from '../api';
@@ -28,7 +29,9 @@ export default function DocumentUploadScreen() {
   const [idBack, setIdBack] = useState<string | null>(null);
   const [selfie, setSelfie] = useState<string | null>(null);
   const [bankStatement, setBankStatement] = useState<string | null>(null);
-  const [payslip, setPayslip] = useState<string | null>(null);
+  const [payslip1, setPayslip1] = useState<string | null>(null);
+  const [payslip2, setPayslip2] = useState<string | null>(null);
+  const [payslip3, setPayslip3] = useState<string | null>(null);
 
   // Request necessary permissions
   const requestPermissions = async () => {
@@ -91,7 +94,7 @@ export default function DocumentUploadScreen() {
     }
   };
 
-  const handleCapture = async (documentType: 'idFront' | 'idBack' | 'selfie' | 'bankStatement' | 'payslip') => {
+  const handleCapture = async (documentType: 'idFront' | 'idBack' | 'selfie' | 'bankStatement') => {
     const hasPermission = await requestPermissions();
     if (!hasPermission) return;
 
@@ -103,14 +106,14 @@ export default function DocumentUploadScreen() {
           pickerResult = await ImagePicker.launchCameraAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
-            aspect: [4, 3],
+            aspect: [3, 4],
             quality: 0.8,
           });
         } else {
           pickerResult = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
-            aspect: [4, 3],
+            aspect: [3, 4],
             quality: 0.8,
           });
         }
@@ -137,7 +140,6 @@ export default function DocumentUploadScreen() {
           case 'idBack': setIdBack(uri); break;
           case 'selfie': setSelfie(uri); break;
           case 'bankStatement': setBankStatement(uri); break;
-          case 'payslip': setPayslip(uri); break;
         }
       } catch (error) {
         console.error('Error picking image:', error);
@@ -183,6 +185,62 @@ export default function DocumentUploadScreen() {
     }
   };
 
+  const convertPdfToBase64 = async (uri: string): Promise<string> => {
+    try {
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      return `data:application/pdf;base64,${base64}`;
+    } catch (error) {
+      console.error('Error converting PDF to base64:', error);
+      throw error;
+    }
+  };
+
+  const handlePickPayslip = async (slot: 1 | 2 | 3) => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+
+      const asset = result.assets?.[0];
+      if (!asset?.uri) return;
+
+      const isValidSize = await checkFileSize(asset.uri);
+      if (!isValidSize) {
+        Toast.show({
+          type: 'error',
+          text1: 'File too large',
+          text2: 'Please select a file smaller than 10MB'
+        });
+        return;
+      }
+
+      const uri = asset.uri;
+      switch (slot) {
+        case 1:
+          setPayslip1(uri);
+          break;
+        case 2:
+          setPayslip2(uri);
+          break;
+        case 3:
+          setPayslip3(uri);
+          break;
+      }
+    } catch (error) {
+      console.error('Error picking payslip PDF:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error selecting payslip PDF',
+        text2: 'Please try again'
+      });
+    }
+  };
+
   const handleNext = async () => {
     setLoading(true);
 
@@ -199,13 +257,17 @@ export default function DocumentUploadScreen() {
         idBackBase64,
         selfieBase64,
         bankStatementBase64,
-        payslipBase64
+        payslip1Base64,
+        payslip2Base64,
+        payslip3Base64,
       ] = await Promise.all([
         convertIfNeeded(idFront),
         convertIfNeeded(idBack),
         convertIfNeeded(selfie),
         convertIfNeeded(bankStatement),
-        convertIfNeeded(payslip)
+        payslip1 ? convertPdfToBase64(payslip1) : Promise.resolve(null),
+        payslip2 ? convertPdfToBase64(payslip2) : Promise.resolve(null),
+        payslip3 ? convertPdfToBase64(payslip3) : Promise.resolve(null),
       ]);
 
       const response = await documentsUpload(
@@ -213,7 +275,9 @@ export default function DocumentUploadScreen() {
         idBackBase64,
         selfieBase64,
         bankStatementBase64,
-        payslipBase64,
+        payslip1Base64,
+        payslip2Base64,
+        payslip3Base64,
         email,
         token
       );
@@ -242,8 +306,8 @@ export default function DocumentUploadScreen() {
     }
   };
 
-  // Only require ID front, ID back, and selfie for navigation
-  const canProceed = idFront && idBack && selfie;
+  // Require ID front, ID back, selfie, and three payslips for navigation
+  const canProceed = idFront && idBack && selfie && payslip1 && payslip2 && payslip3;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -326,21 +390,55 @@ export default function DocumentUploadScreen() {
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
-          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Payslip(s) <Text style={styles.required}>*</Text></Text>
+          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Payslips (PDF) <Text style={styles.required}>*</Text></Text>
+          
+          <Text style={styles.payslipLabel}>Payslip 1</Text>
           <TouchableOpacity
             style={[
               styles.uploadButton,
               {
-                backgroundColor: payslip ? theme.successColor : theme.primaryColor
+                backgroundColor: payslip1 ? theme.successColor : theme.primaryColor
               }
             ]}
-            onPress={() => handleCapture('payslip')}
+            onPress={() => handlePickPayslip(1)}
           >
             <Text style={styles.buttonText}>
-              {payslip ? 'Uploaded' : 'Upload'}
+              {payslip1 ? 'Uploaded' : 'Upload PDF'}
             </Text>
           </TouchableOpacity>
-          {payslip && <Text style={styles.fileInfo}>File selected</Text>}
+          {payslip1 && <Text style={styles.fileInfo}>PDF selected</Text>}
+
+          <Text style={styles.payslipLabel}>Payslip 2</Text>
+          <TouchableOpacity
+            style={[
+              styles.uploadButton,
+              {
+                backgroundColor: payslip2 ? theme.successColor : theme.primaryColor
+              }
+            ]}
+            onPress={() => handlePickPayslip(2)}
+          >
+            <Text style={styles.buttonText}>
+              {payslip2 ? 'Uploaded' : 'Upload PDF'}
+            </Text>
+          </TouchableOpacity>
+          {payslip2 && <Text style={styles.fileInfo}>PDF selected</Text>}
+
+          <Text style={styles.payslipLabel}>Payslip 3</Text>
+          <TouchableOpacity
+            style={[
+              styles.uploadButton,
+              {
+                backgroundColor: payslip3 ? theme.successColor : theme.primaryColor
+              }
+            ]}
+            onPress={() => handlePickPayslip(3)}
+          >
+            <Text style={styles.buttonText}>
+              {payslip3 ? 'Uploaded' : 'Upload PDF'}
+            </Text>
+          </TouchableOpacity>
+          {payslip3 && <Text style={styles.fileInfo}>PDF selected</Text>}
         </View>
 
         <TouchableOpacity
@@ -424,5 +522,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     fontStyle: 'italic',
+  },
+  payslipLabel: {
+    marginTop: 12,
+    marginBottom: 8,
+    fontSize: 14,
+    color: '#444',
   },
 });
