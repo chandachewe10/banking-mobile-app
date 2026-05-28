@@ -6,11 +6,11 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ActivityIndicator,
   Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme';
 
@@ -24,49 +24,64 @@ export default function SignUpScreen() {
   const [token, setToken] = useState('');
 
 
-  const handleSubmit = async () => {
-    if (!email || !mobile) {
-      console.log('Please fill in all fields');
-      return;
+  const validateForm = (): boolean => {
+    if (!email.trim()) {
+      Toast.show({ type: 'error', text1: 'Email is required', text2: 'Please enter your email address.' });
+      return false;
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      Toast.show({ type: 'error', text1: 'Invalid email', text2: 'Please enter a valid email address.' });
+      return false;
+    }
+    if (!mobile.trim()) {
+      Toast.show({ type: 'error', text1: 'Mobile number is required', text2: 'Please enter your mobile number.' });
+      return false;
+    }
+    // Accepts all current Zambian network prefixes: 095-097, 075-077, 055-057
+    const mobileRegex = /^0(9[5-7]|7[5-7]|5[5-7])\d{7}$/;
+    if (!mobileRegex.test(mobile.trim())) {
+      Toast.show({ type: 'error', text1: 'Invalid mobile number', text2: 'Enter a valid 10-digit Zambian number (e.g. 0971234567, 0771234567).' });
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
 
     setLoading(true);
 
     try {
-      const response = await register(email, mobile);
+      const response = await register(email.trim(), mobile.trim());
 
       if (response.success) {
-        const token = response.data.data.token;
+        const token = response.data?.data?.token ?? response.data?.token;
         setToken(token);
 
         Toast.show({
           type: 'success',
-          text1: response.message || "Registration successful"
+          text1: 'OTP Sent',
+          text2: response.message || 'Check your email and SMS for your OTP code.'
         });
-        console.log('Registration successfull:', response.data.data.token);
 
-        navigation.navigate('OTPVerification', { email, mobile, token });
+        navigation.navigate('OTPVerification', { email: email.trim(), mobile: mobile.trim(), token });
       } else {
-        console.warn('registration failed:', response.message);
         Toast.show({
           type: 'error',
-          text1: response.message || "Registration failed"
+          text1: 'Registration Failed',
+          text2: response.message || 'Something went wrong. Please try again.'
         });
-
       }
-    } catch (err) {
-      console.error('Error verifying OTP:', err);
-      const errorMessage = typeof err === 'object' && err !== null && 'message' in err ? (err as { message?: string }).message : undefined;
+    } catch (err: any) {
       Toast.show({
         type: 'error',
-        text1: errorMessage || "An error occurred"
-
+        text1: 'Registration Failed',
+        text2: err?.message || 'An unexpected error occurred.'
       });
-
     } finally {
       setLoading(false);
     }
-
   };
 
   return (

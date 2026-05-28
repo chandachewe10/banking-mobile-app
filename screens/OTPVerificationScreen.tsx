@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { verifyOtp, resendOtp } from '../api';
 import Toast from 'react-native-toast-message';
 import { 
-  SafeAreaView, 
   Text, 
   TextInput, 
   StyleSheet, 
@@ -11,6 +10,7 @@ import {
   ActivityIndicator,
   Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../theme';
 
@@ -46,27 +46,28 @@ const inputs = Array(6)
   setLoading(true);
 
   try {
-    const response = await verifyOtp(fullOtp, email,token);
+    const response = await verifyOtp(fullOtp, email, token);
 
     if (response.success) {
       Toast.show({
         type: 'success',
-        text1: 'OTP Verified successfully'
+        text1: 'OTP Verified',
+        text2: 'Identity confirmed. Proceeding to your details.'
       });
-      console.log('OTP Verified:', response.data);
-      navigation.navigate('Biodata', { email, mobile,token });
+      navigation.navigate('Biodata', { email, mobile, token });
     } else {
-      console.warn('OTP Verification failed:', response.message);
       Toast.show({
         type: 'error',
-        text1: response.message || "OTP Verification failed"
+        text1: 'Verification Failed',
+        text2: response.message || 'The OTP you entered is incorrect or has expired.'
       });
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error verifying OTP:', err);
     Toast.show({
       type: 'error',
-      text1: "An error occurred while verifying OTP"
+      text1: 'Verification Failed',
+      text2: err?.message || 'An error occurred while verifying OTP.'
     });
   } finally {
     setLoading(false);
@@ -86,20 +87,23 @@ const handleResend = async () => {
     if (response.success) {
       Toast.show({
         type: 'success',
-        text1: 'OTP resent successfully'
+        text1: 'OTP Resent',
+        text2: 'A new OTP has been sent to your email and phone.'
       });
       setResendSeconds(60);
     } else {
       Toast.show({
         type: 'error',
-        text1: response.message || 'Failed to resend OTP'
+        text1: 'Resend Failed',
+        text2: response.message || 'Unable to resend OTP. Please try again.'
       });
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error resending OTP:', err);
     Toast.show({
       type: 'error',
-      text1: 'An error occurred while resending OTP'
+      text1: 'Resend Failed',
+      text2: err?.message || 'An error occurred while resending OTP.'
     });
   } finally {
     setResendLoading(false);

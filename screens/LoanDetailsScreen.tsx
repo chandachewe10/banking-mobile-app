@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Toast from 'react-native-toast-message';
 import {
-  SafeAreaView,
   View,
   Text,
   TextInput,
@@ -11,6 +10,7 @@ import {
   Platform,
   ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 
@@ -41,20 +41,22 @@ export default function LoanDetailsScreen() {
     const processingFee = amount * PROCESSING_FEE_PERCENT;
     const insuranceFee = amount * INSURANCE_FEE_PERCENT;
     const totalFees = processingFee + arrangementFee + insuranceFee;
-    const totalDisbursable = amount - totalFees;
+    const disbursedAmount = amount - totalFees;
     const principalMonthly = tenure > 0 ? amount / tenure : 0;
     const totalInterest = amount * INTEREST_RATE_MONTHLY * tenure;
     const monthlyInterest = tenure > 0 ? totalInterest / tenure : 0;
     const monthlyRepayment = principalMonthly + monthlyInterest;
-    
+    const totalRepayable = amount + totalInterest;
+
     return {
       arrangementFee: arrangementFee.toFixed(2),
       processingFee: processingFee.toFixed(2),
       insuranceFee: insuranceFee.toFixed(2),
       totalFees: totalFees.toFixed(2),
-      totalDisbursable: totalDisbursable.toFixed(2),
+      disbursedAmount: disbursedAmount.toFixed(2),
       monthlyRepayment: monthlyRepayment.toFixed(2),
-      totalInterest: totalInterest.toFixed(2)
+      totalInterest: totalInterest.toFixed(2),
+      totalRepayable: totalRepayable.toFixed(2),
     };
   };
 
@@ -65,15 +67,18 @@ export default function LoanDetailsScreen() {
       const summary = calculateSummary();
       
       const response = await loanDetails(
-        loanAmount, 
-        loanPurpose, 
-        INTEREST_RATE_MONTHLY.toString(), 
-        loanTenure, 
+        loanAmount,
+        loanPurpose,
+        INTEREST_RATE_MONTHLY.toString(),
+        loanTenure,
         summary.arrangementFee,
         summary.processingFee,
         summary.insuranceFee,
         summary.totalInterest,
-        email, 
+        summary.monthlyRepayment,
+        summary.disbursedAmount,
+        summary.totalRepayable,
+        email,
         token
       );
 
@@ -214,7 +219,12 @@ export default function LoanDetailsScreen() {
 
             <View style={styles.feeRow}>
               <Text style={styles.feeLabel}>Total Disbursable Amount:</Text>
-              <Text style={styles.feeValue}>K{parseFloat(summary.totalDisbursable).toLocaleString()}</Text>
+              <Text style={styles.feeValue}>K{parseFloat(summary.disbursedAmount).toLocaleString()}</Text>
+            </View>
+
+            <View style={styles.feeRow}>
+              <Text style={styles.feeLabel}>Total Repayable:</Text>
+              <Text style={styles.feeValue}>K{parseFloat(summary.totalRepayable).toLocaleString()}</Text>
             </View>
 
             <View style={[styles.feeRow, styles.totalRow]}>

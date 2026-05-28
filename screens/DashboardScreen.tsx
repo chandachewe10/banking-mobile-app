@@ -1,6 +1,5 @@
 import React from 'react';
 import { 
-  SafeAreaView, 
   View, 
   Text, 
   StyleSheet, 
@@ -8,16 +7,13 @@ import {
   TouchableOpacity,
   Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme';
-import { toast } from "sonner-native";
+
 export default function DashboardScreen() {
   const navigation = useNavigation();
   const theme = useTheme();
-
-  const startKYC = () => {
-    navigation.navigate('SignUp');
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -27,33 +23,45 @@ export default function DashboardScreen() {
           <Text style={styles.headerSubtext}>Complete your verification process</Text>
         </View>
 
+        {/* New Application */}
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
-          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Start Your KYC Process</Text>
+          <Text style={[styles.cardTitle, { color: theme.textColor }]}>New Application</Text>
           <Text style={[styles.cardDescription, { color: theme.textColor }]}>
-            Complete your Know Your Customer verification to access all banking services.
+            First time here? Register and complete your KYC to access all banking services.
           </Text>
-          
           <TouchableOpacity
             style={[styles.button, { backgroundColor: theme.primaryColor }]}
-            onPress={startKYC}
+            onPress={() => navigation.navigate('SignUp')}
           >
-            <Text style={styles.buttonText}>Start KYC</Text>
+            <Text style={styles.buttonText}>Register &amp; Start KYC</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Returning User */}
+        <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
+          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Returning User</Text>
+          <Text style={[styles.cardDescription, { color: theme.textColor }]}>
+            Already registered? Login with your mobile number to resume or reapply.
+          </Text>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: theme.secondaryColor }]}
+            onPress={() => navigation.navigate('Login')}
+          >
+            <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
         </View>
 
         <View style={[styles.infoCard, { backgroundColor: theme.cardBackgroundColor }]}>
           <Text style={[styles.infoTitle, { color: theme.textColor }]}>What You'll Need</Text>
           <Text style={[styles.infoText, { color: theme.textColor }]}>
-            • Valid government-issued ID{'\n'}
-            • Recent selfie for verification{'\n'}
-            • Basic personal information{'\n'}
-            • Employment details
+            • Valid government-issued NRC{'\n'}
+            • Live selfie (camera capture required){'\n'}
+            • GPS location enabled{'\n'}
+            • Bank statement (PDF){'\n'}
+            • Up to 3 months payslips (PDF){'\n'}
+            • Bank account details
           </Text>
         </View>
-        
-        <Text style={styles.platformInfo}>
-          Current Platform: {Platform.OS || 'unknown'}
-        </Text>
       </ScrollView>
     </SafeAreaView>
   );

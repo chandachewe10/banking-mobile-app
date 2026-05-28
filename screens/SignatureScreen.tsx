@@ -2,7 +2,6 @@ import React, { useRef, useState } from "react";
 import { toast } from "sonner-native";
 import Toast from 'react-native-toast-message';
 import {
-  SafeAreaView,
   View,
   Text,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
   ActivityIndicator,
   Dimensions,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useTheme } from "../theme";
 import { signature } from "../api";

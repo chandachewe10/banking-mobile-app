@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import Toast from 'react-native-toast-message';
 import {
-  SafeAreaView,
   View,
   Text,
   StyleSheet,
@@ -13,6 +12,7 @@ import {
   Alert,
   ActionSheetIOS
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -94,59 +94,95 @@ export default function DocumentUploadScreen() {
     }
   };
 
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+  const validateImageType = (mimeType?: string, uri?: string): boolean => {
+    if (mimeType && !ALLOWED_IMAGE_TYPES.includes(mimeType.toLowerCase())) return false;
+    // Fallback: check extension if MIME type unavailable
+    if (!mimeType && uri) {
+      const ext = uri.split('.').pop()?.toLowerCase();
+      return ['jpg', 'jpeg', 'png', 'webp'].includes(ext ?? '');
+    }
+    return true;
+  };
+
+  const pickImageFromSource = async (
+    source: 'camera' | 'gallery',
+    aspect: [number, number] = [3, 4],
+  ): Promise<ImagePicker.ImagePickerAsset | null> => {
+    const options: ImagePicker.ImagePickerOptions = {
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect,
+      quality: 0.8,
+    };
+    const result = source === 'camera'
+      ? await ImagePicker.launchCameraAsync(options)
+      : await ImagePicker.launchImageLibraryAsync(options);
+
+    if (result.canceled) return null;
+    return result.assets?.[0] ?? null;
+  };
+
   const handleCapture = async (documentType: 'idFront' | 'idBack' | 'selfie') => {
     const hasPermission = await requestPermissions();
     if (!hasPermission) return;
 
-    showSourceOptions(documentType, async (source) => {
-      let pickerResult;
-
+    // Selfie MUST be taken with the live camera — no gallery allowed
+    if (documentType === 'selfie') {
       try {
-        if (source === 'camera') {
-          pickerResult = await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [3, 4],
-            quality: 0.8,
-          });
-        } else {
-          pickerResult = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [3, 4],
-            quality: 0.8,
-          });
-        }
-
-        if (pickerResult.canceled) return;
-
-        const asset = pickerResult.assets?.[0];
+        const asset = await pickImageFromSource('camera', [1, 1]);
         if (!asset?.uri) return;
 
-        // Check file size
-        const isValidSize = await checkFileSize(asset.uri);
-        if (!isValidSize) {
+        if (!validateImageType(asset.mimeType, asset.uri)) {
           Toast.show({
             type: 'error',
-            text1: 'File too large',
-            text2: 'Please select a file smaller than 10MB'
+            text1: 'Unsupported file type',
+            text2: 'Selfie must be a JPG, PNG or WEBP image.'
           });
           return;
         }
 
-        const uri = asset.uri;
-        switch (documentType) {
-          case 'idFront': setIdFront(uri); break;
-          case 'idBack': setIdBack(uri); break;
-          case 'selfie': setSelfie(uri); break;
+        const isValidSize = await checkFileSize(asset.uri);
+        if (!isValidSize) {
+          Toast.show({ type: 'error', text1: 'File too large', text2: 'Please capture a photo under 10MB.' });
+          return;
         }
+
+        setSelfie(asset.uri);
+      } catch (error) {
+        console.error('Error capturing selfie:', error);
+        Toast.show({ type: 'error', text1: 'Camera error', text2: 'Could not open camera. Please try again.' });
+      }
+      return;
+    }
+
+    // ID Front / ID Back — allow camera or gallery
+    showSourceOptions(documentType, async (source) => {
+      try {
+        const asset = await pickImageFromSource(source);
+        if (!asset?.uri) return;
+
+        if (!validateImageType(asset.mimeType, asset.uri)) {
+          Toast.show({
+            type: 'error',
+            text1: 'Unsupported file type',
+            text2: 'Only JPG, PNG or WEBP images are allowed.'
+          });
+          return;
+        }
+
+        const isValidSize = await checkFileSize(asset.uri);
+        if (!isValidSize) {
+          Toast.show({ type: 'error', text1: 'File too large', text2: 'Please select a file smaller than 10MB.' });
+          return;
+        }
+
+        if (documentType === 'idFront') setIdFront(asset.uri);
+        else if (documentType === 'idBack') setIdBack(asset.uri);
       } catch (error) {
         console.error('Error picking image:', error);
-        Toast.show({
-          type: 'error',
-          text1: 'Error selecting image',
-          text2: 'Please try again'
-        });
+        Toast.show({ type: 'error', text1: 'Error selecting image', text2: 'Please try again.' });
       }
     });
   };
@@ -360,14 +396,15 @@ export default function DocumentUploadScreen() {
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
-          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Selfie <Text style={styles.required}>*</Text></Text>
+          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Live Selfie <Text style={styles.required}>*</Text></Text>
+          <Text style={[styles.fileInfo, { marginBottom: 10 }]}>Must be taken with the camera — no gallery uploads allowed.</Text>
           <TouchableOpacity
             style={[styles.uploadButton, { backgroundColor: selfie ? theme.successColor : theme.primaryColor }]}
             onPress={() => handleCapture('selfie')}
           >
-            <Text style={styles.buttonText}>{selfie ? 'Uploaded' : 'Upload'}</Text>
+            <Text style={styles.buttonText}>{selfie ? '✓ Selfie Captured' : 'Open Camera'}</Text>
           </TouchableOpacity>
-          {selfie && <Text style={styles.fileInfo}>File selected</Text>}
+          {selfie && <Text style={styles.fileInfo}>Selfie captured successfully</Text>}
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>

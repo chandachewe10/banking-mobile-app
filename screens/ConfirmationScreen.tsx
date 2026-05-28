@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  SafeAreaView, 
   Text, 
   TouchableOpacity, 
   ScrollView, 
@@ -9,6 +8,7 @@ import {
   View,
   Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../theme';
 

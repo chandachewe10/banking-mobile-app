@@ -11,6 +11,7 @@ import SignatureScreen from "./screens/SignatureScreen";
 import ConfirmationScreen from "./screens/ConfirmationScreen";
 import SplashScreen from "./screens/SplashScreen";
 import SignUpScreen from "./screens/SignUpScreen";
+import LoginScreen from "./screens/LoginScreen";
 import OTPVerificationScreen from "./screens/OTPVerificationScreen";
 
 const Stack = createNativeStackNavigator();
@@ -31,6 +32,7 @@ function RootStack() {
       <Stack.Screen name="Confirmation" component={ConfirmationScreen} />
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
     </Stack.Navigator>
   );
