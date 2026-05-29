@@ -15,10 +15,10 @@ const channelName = (expoConfig?.updates as any)?.channel || 'default';
 // For a physical device replace this with your machine's LAN IP.
 const HOST = Platform.OS === 'android' ? '10.0.2.2' : '127.0.0.1';
 
-export const API_BASE = `https://dd81-41-216-86-45.ngrok-free.app`;
+export const API_BASE = `https://pas.macroit.org`;
 
 // Kept for backwards-compat; same value as API_BASE now that HOST is correct.
-export const HTTP_API_BASE = `https://dd81-41-216-86-45.ngrok-free.app`;
+export const HTTP_API_BASE = `https://pas.macroit.org`;
 
 interface ApiResponse<T = any> {
   success: boolean;
