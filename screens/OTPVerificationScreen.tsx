@@ -28,9 +28,10 @@ const inputs = Array(6)
   const route = useRoute();
   const theme = useTheme();
   const { email, mobile, token, flow } = route.params as {
-    email: string; mobile: string; token: string; flow?: 'signup' | 'login';
+    email: string; mobile: string; token: string; flow?: 'signup' | 'login' | 'resume';
   };
-  const isResumeFlow = flow === 'login';
+  const isLoginFlow = flow === 'login';
+  const isResumeFlow = flow === 'resume';
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [resumeLoading, setResumeLoading] = useState(false);
@@ -40,7 +41,7 @@ const inputs = Array(6)
 
   
 
-  /** Navigate to the correct screen based on where the user left off */
+  /** Resume flow: route to the correct KYC step based on backend progress */
   const resumeToStep = async (verifiedToken: string) => {
     setResumeLoading(true);
     try {
@@ -48,25 +49,23 @@ const inputs = Array(6)
       const step: string = statusRes.data?.step ?? 'biodata';
 
       const stepRoutes: Record<string, () => void> = {
-        biodata:     () => (navigation as any).navigate('Biodata',         { email, mobile, token: verifiedToken }),
-        documents:   () => (navigation as any).navigate('DocumentUpload',  { email, token: verifiedToken }),
-        loan_details:() => (navigation as any).navigate('LoanDetails',     { email, token: verifiedToken }),
-        completed:   () => (navigation as any).navigate('Confirmation',    { email, token: verifiedToken, caseNumber: statusRes.data?.case_number }),
+        biodata:      () => (navigation as any).navigate('Biodata',        { email, mobile, token: verifiedToken }),
+        documents:    () => (navigation as any).navigate('DocumentUpload', { email, token: verifiedToken }),
+        loan_details: () => (navigation as any).navigate('LoanDetails',    { email, token: verifiedToken }),
+        completed:    () => (navigation as any).reset({
+          index: 0,
+          routes: [{ name: 'CustomerDashboard', params: { email, mobile, token: verifiedToken } }],
+        }),
       };
 
       const friendlyStep: Record<string, string> = {
         biodata:      'Personal Details',
         documents:    'Document Upload',
         loan_details: 'Loan Details',
-        completed:    'Application Submitted',
+        completed:    'your dashboard',
       };
 
-      Toast.show({
-        type: 'success',
-        text1: 'Welcome back!',
-        text2: `Resuming at: ${friendlyStep[step] ?? step}`,
-      });
-
+      Toast.show({ type: 'success', text1: 'Welcome back!', text2: `Resuming at: ${friendlyStep[step] ?? step}` });
       (stepRoutes[step] ?? stepRoutes.biodata)();
     } catch {
       Toast.show({ type: 'error', text1: 'Could not load your progress. Starting from Personal Details.' });
@@ -91,8 +90,15 @@ const inputs = Array(6)
     if (response.success) {
       const verifiedToken = response.data?.token ?? token;
 
-      if (isResumeFlow) {
-        // Returning user — check where they left off
+      if (isLoginFlow) {
+        // Login — go to the personal dashboard to track loan status
+        Toast.show({ type: 'success', text1: 'Welcome back!', text2: 'Loading your dashboard...' });
+        (navigation as any).reset({
+          index: 0,
+          routes: [{ name: 'CustomerDashboard', params: { email, mobile, token: verifiedToken } }],
+        });
+      } else if (isResumeFlow) {
+        // Resume — jump straight back to the step where the user left off
         await resumeToStep(verifiedToken);
       } else {
         // New user — always start at Biodata

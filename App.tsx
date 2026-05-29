@@ -13,6 +13,7 @@ import SplashScreen from "./screens/SplashScreen";
 import SignUpScreen from "./screens/SignUpScreen";
 import LoginScreen from "./screens/LoginScreen";
 import OTPVerificationScreen from "./screens/OTPVerificationScreen";
+import CustomerDashboardScreen from "./screens/CustomerDashboardScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -37,6 +38,7 @@ function RootStack() {
       <Stack.Screen name="SignUp" component={SignUpScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
+      <Stack.Screen name="CustomerDashboard" component={CustomerDashboardScreen} />
     </Stack.Navigator>
   );
 }

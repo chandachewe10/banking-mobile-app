@@ -37,15 +37,29 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Returning User */}
+        {/* Login — track loan status */}
+        <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
+          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Login</Text>
+          <Text style={[styles.cardDescription, { color: theme.textColor }]}>
+            Already registered? Log in with your mobile number to view your dashboard and track your loan application status.
+          </Text>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: theme.primaryColor }]}
+            onPress={() => navigation.navigate('Login', { mode: 'login' })}
+          >
+            <Text style={styles.buttonText}>Login</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Resume an unfinished application */}
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
           <Text style={[styles.cardTitle, { color: theme.textColor }]}>Resume Application</Text>
           <Text style={[styles.cardDescription, { color: theme.textColor }]}>
-            Already registered? Enter your mobile number to continue from where you left off.
+            Didn't finish your KYC? Enter your mobile number to continue from exactly where you left off.
           </Text>
           <TouchableOpacity
             style={[styles.button, { backgroundColor: theme.secondaryColor }]}
-            onPress={() => navigation.navigate('Login')}
+            onPress={() => navigation.navigate('Login', { mode: 'resume' })}
           >
             <Text style={styles.buttonText}>Resume Application</Text>
           </TouchableOpacity>

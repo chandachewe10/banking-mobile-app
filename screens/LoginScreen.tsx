@@ -14,13 +14,16 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { loginRequest } from '../api';
 
 export default function LoginScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
   const theme = useTheme();
+  const mode = ((route.params as { mode?: 'login' | 'resume' })?.mode) ?? 'login';
+  const isResume = mode === 'resume';
   const [mobile, setMobile] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -54,7 +57,7 @@ export default function LoginScreen() {
           email: response.data?.email ?? '',
           mobile: mobile.trim(),
           token: response.data?.token ?? '',
-          flow: 'login',
+          flow: mode,
         });
       } else {
         Toast.show({
@@ -89,9 +92,13 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={false}
       >
-        <Text style={[styles.title, { color: theme.textColor }]}>Resume Application</Text>
+        <Text style={[styles.title, { color: theme.textColor }]}>
+          {isResume ? 'Resume Application' : 'Login'}
+        </Text>
         <Text style={[styles.subtitle, { color: theme.textColor }]}>
-          Enter your registered mobile number. We'll send an OTP to verify your identity and take you back to where you left off.
+          {isResume
+            ? "Enter your registered mobile number. We'll send an OTP and take you back to where you left off."
+            : "Enter your registered mobile number. We'll send an OTP to verify your identity, then take you to your dashboard."}
         </Text>
 
         <View style={styles.form}>

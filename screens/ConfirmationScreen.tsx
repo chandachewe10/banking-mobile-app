@@ -21,6 +21,11 @@ export default function ConfirmationScreen() {
   const [success, setSuccess] = useState(false);
 
   const handleFinish = () => navigation.navigate('Dashboard');
+  const handleViewStatus = () =>
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'CustomerDashboard', params: { email, token } }],
+    });
 
   useEffect(() => {
     // Simulate API call
@@ -61,8 +66,17 @@ export default function ConfirmationScreen() {
             </Text>
           )}
           
+          {success && (
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: theme.primaryColor, marginBottom: 12 }]}
+              onPress={handleViewStatus}
+            >
+              <Text style={styles.buttonText}>View Application Status</Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: theme.primaryColor }]}
+            style={[styles.button, { backgroundColor: success ? theme.secondaryColor : theme.primaryColor }]}
             onPress={handleFinish}
           >
             <Text style={styles.buttonText}>Done</Text>
