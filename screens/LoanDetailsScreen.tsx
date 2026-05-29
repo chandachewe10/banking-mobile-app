@@ -6,6 +6,7 @@ import {
   TextInput,
   StyleSheet,
   ScrollView,
+  KeyboardAvoidingView,
   TouchableOpacity,
   Platform,
   ActivityIndicator
@@ -21,42 +22,71 @@ export default function LoanDetailsScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const theme = useTheme();
-  const { email, token } = route.params;
+  const { email, token } = route.params as { email: string; token: string };
   const [loading, setLoading] = useState(false);
   const [loanAmount, setLoanAmount] = useState('');
   const [loanPurpose, setLoanPurpose] = useState('');
   const [loanTenure, setLoanTenure] = useState('1');
   const [monthlyIncome, setMonthlyIncome] = useState('');
+  const [disbursementMethod, setDisbursementMethod] = useState('');
 
-  // Constants for fees and interest
-  const ARRANGEMENT_FEE_PERCENT = 0.04;
-  const PROCESSING_FEE_PERCENT = 0.025;
-  const INSURANCE_FEE_PERCENT = 0.045;
-  const INTEREST_RATE_MONTHLY = 0.32;
+  // ── Fee constants — kept in sync with LoanCalculator.php on the backend ──
+  const INTEREST_RATE_PA     = 32;    // 32 % per annum (stored as integer, not decimal)
+  const ARRANGEMENT_RATE     = 0.04;  // 4 %
+  const PROCESSING_RATE      = 0.025; // 2.5 %
+  const CREDIT_LIFE_RATE     = 0.045; // 4.5 %
+  const INSURANCE_LEVY       = 150;   // fixed K 150
+  const CRB_FEE              = 50;    // fixed K 50
+  const COLLATERAL_RATE      = 0.01;  // 1 %
+  const DOCUMENTATION_RATE   = 0.005; // 0.5 %
+  const ADMIN_RATE_PER_MONTH = 0.005; // 0.5 % of principal per month
+
+  const r = (v: number) => Math.round(v * 100) / 100; // round to 2 d.p.
 
   const calculateSummary = () => {
     const amount = parseFloat(loanAmount) || 0;
     const tenure = parseInt(loanTenure, 10) || 0;
-    const arrangementFee = amount * ARRANGEMENT_FEE_PERCENT;
-    const processingFee = amount * PROCESSING_FEE_PERCENT;
-    const insuranceFee = amount * INSURANCE_FEE_PERCENT;
-    const totalFees = processingFee + arrangementFee + insuranceFee;
-    const disbursedAmount = amount - totalFees;
-    const principalMonthly = tenure > 0 ? amount / tenure : 0;
-    const totalInterest = amount * INTEREST_RATE_MONTHLY * tenure;
-    const monthlyInterest = tenure > 0 ? totalInterest / tenure : 0;
-    const monthlyRepayment = principalMonthly + monthlyInterest;
-    const totalRepayable = amount + totalInterest;
+
+    // Upfront fees
+    const arrangementFee     = r(amount * ARRANGEMENT_RATE);
+    const processingFee      = r(amount * PROCESSING_RATE);
+    const creditLifeFee      = r(amount * CREDIT_LIFE_RATE);
+    const insuranceLevy      = INSURANCE_LEVY;
+    const creditReferenceFee = CRB_FEE;
+    const collateralFee      = r(amount * COLLATERAL_RATE);
+    const documentationFee   = r(amount * DOCUMENTATION_RATE);
+    const adminFeePerMonth   = r(amount * ADMIN_RATE_PER_MONTH);
+    const totalAdminFees     = r(adminFeePerMonth * tenure);
+
+    // Total displayed deductions (informational — shown to borrower)
+    const totalUpfrontFees = arrangementFee + processingFee + creditLifeFee
+                           + insuranceLevy + creditReferenceFee + collateralFee
+                           + documentationFee + totalAdminFees;
+
+    // Disbursed amount per spec: only 5 fees are physically deducted from the cash given
+    // (arrangement + processing + credit life + credit reference + insurance levy)
+    const disbursedAmount  = r(Math.max(0, amount - arrangementFee - processingFee
+                             - creditLifeFee - creditReferenceFee - insuranceLevy));
+
+    // Interest: 32 % per annum, simple interest over tenure months
+    const totalInterest    = r(amount * (INTEREST_RATE_PA / 100) * (tenure / 12));
+    const totalRepayable   = r(amount + totalInterest);
+    const monthlyRepayment = tenure > 0 ? r(totalRepayable / tenure) : 0;
 
     return {
-      arrangementFee: arrangementFee.toFixed(2),
-      processingFee: processingFee.toFixed(2),
-      insuranceFee: insuranceFee.toFixed(2),
-      totalFees: totalFees.toFixed(2),
-      disbursedAmount: disbursedAmount.toFixed(2),
-      monthlyRepayment: monthlyRepayment.toFixed(2),
-      totalInterest: totalInterest.toFixed(2),
-      totalRepayable: totalRepayable.toFixed(2),
+      arrangementFee:     arrangementFee.toFixed(2),
+      processingFee:      processingFee.toFixed(2),
+      creditLifeFee:      creditLifeFee.toFixed(2),
+      insuranceLevy:      insuranceLevy.toFixed(2),
+      creditReferenceFee: creditReferenceFee.toFixed(2),
+      collateralFee:      collateralFee.toFixed(2),
+      documentationFee:   documentationFee.toFixed(2),
+      adminFeePerMonth:   adminFeePerMonth.toFixed(2),
+      totalUpfrontFees:   totalUpfrontFees.toFixed(2),
+      disbursedAmount:    disbursedAmount.toFixed(2),
+      totalInterest:      totalInterest.toFixed(2),
+      totalRepayable:     totalRepayable.toFixed(2),
+      monthlyRepayment:   monthlyRepayment.toFixed(2),
     };
   };
 
@@ -69,15 +99,22 @@ export default function LoanDetailsScreen() {
       const response = await loanDetails(
         loanAmount,
         loanPurpose,
-        INTEREST_RATE_MONTHLY.toString(),
+        INTEREST_RATE_PA.toString(),   // send as integer percentage e.g. "32"
         loanTenure,
         summary.arrangementFee,
         summary.processingFee,
-        summary.insuranceFee,
+        summary.creditLifeFee,         // was insuranceFee
         summary.totalInterest,
         summary.monthlyRepayment,
         summary.disbursedAmount,
         summary.totalRepayable,
+        summary.creditLifeFee,
+        summary.insuranceLevy,
+        summary.creditReferenceFee,
+        summary.collateralFee,
+        summary.documentationFee,
+        summary.adminFeePerMonth,
+        disbursementMethod,
         email,
         token
       );
@@ -88,7 +125,7 @@ export default function LoanDetailsScreen() {
           text1: 'Loan details have been saved successfully'
         });
         console.log('Loan details have been saved successfully: ', response.data);
-        navigation.navigate('Signature', { email, token });
+        (navigation as any).navigate('Signature', { email, token });
       } else {
         console.warn('Saving loan details failed:', response.message);
         Toast.show({
@@ -108,14 +145,25 @@ export default function LoanDetailsScreen() {
   };
 
   const isFormValid = () => {
-    return loanAmount && loanPurpose && monthlyIncome;
+    return loanAmount && loanPurpose && monthlyIncome && disbursementMethod;
   };
 
   const summary = calculateSummary();
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={false}
+      >
         <Text style={[styles.title, { color: theme.textColor }]}>Loan Details</Text>
         <Text style={[styles.subtitle, { color: theme.textColor }]}>
           Please provide your loan requirements
@@ -181,55 +229,56 @@ export default function LoanDetailsScreen() {
             onChangeText={setMonthlyIncome}
             keyboardType="numeric"
           />
+
+          <Text style={styles.label}>Preferred Disbursement Method <Text style={styles.required}>*</Text></Text>
+          <View style={[styles.pickerContainer, { borderColor: theme.borderColor }]}>
+            <Picker
+              selectedValue={disbursementMethod}
+              onValueChange={(v) => setDisbursementMethod(v)}
+              style={styles.picker}
+              dropdownIconColor={theme.textColor}
+            >
+              <Picker.Item label="Select disbursement method" value="" />
+              <Picker.Item label="Electronic Funds Transfer (EFT)" value="EFT" />
+              <Picker.Item label="Mobile Money" value="Mobile Money" />
+            </Picker>
+          </View>
         </View>
 
         {loanAmount && (
           <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
-            <Text style={[styles.cardTitle, { color: theme.textColor }]}>Fee Summary</Text>
+            <Text style={[styles.cardTitle, { color: theme.textColor }]}>Loan Summary</Text>
 
-            <View style={styles.feeRow}>
-              <Text style={styles.feeLabel}>Loan Amount:</Text>
-              <Text style={styles.feeValue}>K{parseFloat(loanAmount).toLocaleString()}</Text>
-            </View>
+            {/* ── Loan basics ── */}
+            <FeeRow label="Loan Amount" value={loanAmount} />
+            <FeeRow label={`Interest (${INTEREST_RATE_PA}% p.a.)`} value={summary.totalInterest} />
 
-            <View style={styles.feeRow}>
-              <Text style={styles.feeLabel}>Interest Amount:</Text>
-              <Text style={styles.feeValue}>K{parseFloat(summary.totalInterest).toLocaleString()}</Text>
+            {/* ── Upfront deduction fees ── */}
+            <View style={styles.sectionDivider}>
+              <Text style={styles.sectionDividerText}>Upfront Deduction Fees</Text>
             </View>
+            <FeeRow label="Arrangement Fee (4%)"              value={summary.arrangementFee} />
+            <FeeRow label="Processing Fee (2.5%)"             value={summary.processingFee} />
+            <FeeRow label="Credit Life Insurance (4.5%)"      value={summary.creditLifeFee} />
+            <FeeRow label="Insurance Levy (Fixed)"            value={summary.insuranceLevy} />
+            <FeeRow label="Credit Reference Bureau Fee (Fixed)" value={summary.creditReferenceFee} />
+            <FeeRow label="Collateral Appraisal Fee (1%)"    value={summary.collateralFee} />
+            <FeeRow label="Documentation Fee (0.5%)"          value={summary.documentationFee} />
+            <FeeRow label="Admin Fee / Month (0.5%)"          value={summary.adminFeePerMonth} />
+            <FeeRow label="Total Upfront Deductions"          value={summary.totalUpfrontFees} bold />
 
-            <View style={styles.feeRow}>
-              <Text style={styles.feeLabel}>Arrangement Fee (4%):</Text>
-              <Text style={styles.feeValue}>K{parseFloat(summary.arrangementFee).toLocaleString()}</Text>
+            {/* ── Totals ── */}
+            <View style={styles.sectionDivider}>
+              <Text style={styles.sectionDividerText}>Repayment Summary</Text>
             </View>
-
-            <View style={styles.feeRow}>
-              <Text style={styles.feeLabel}>Processing Fee (2.5%):</Text>
-              <Text style={styles.feeValue}>K{parseFloat(summary.processingFee).toLocaleString()}</Text>
-            </View>
-
-            <View style={styles.feeRow}>
-              <Text style={styles.feeLabel}>Insurance (4.5%):</Text>
-              <Text style={styles.feeValue}>K{parseFloat(summary.insuranceFee).toLocaleString()}</Text>
-            </View>
-
-            <View style={styles.feeRow}>
-              <Text style={styles.feeLabel}>Total Fees:</Text>
-              <Text style={styles.feeValue}>K{parseFloat(summary.totalFees).toLocaleString()}</Text>
-            </View>
-
-            <View style={styles.feeRow}>
-              <Text style={styles.feeLabel}>Total Disbursable Amount:</Text>
-              <Text style={styles.feeValue}>K{parseFloat(summary.disbursedAmount).toLocaleString()}</Text>
-            </View>
-
-            <View style={styles.feeRow}>
-              <Text style={styles.feeLabel}>Total Repayable:</Text>
-              <Text style={styles.feeValue}>K{parseFloat(summary.totalRepayable).toLocaleString()}</Text>
-            </View>
+            <FeeRow label="Disbursed Amount"  value={summary.disbursedAmount} />
+            <FeeRow label="Total Repayable"   value={summary.totalRepayable} />
 
             <View style={[styles.feeRow, styles.totalRow]}>
               <Text style={[styles.feeLabel, styles.totalLabel]}>Monthly Repayment:</Text>
-              <Text style={[styles.feeValue, styles.totalValue]}>K{parseFloat(summary.monthlyRepayment).toLocaleString()}</Text>
+              <Text style={[styles.feeValue, styles.totalValue]}>
+                K{parseFloat(summary.monthlyRepayment).toLocaleString()}
+              </Text>
             </View>
           </View>
         )}
@@ -256,9 +305,26 @@ export default function LoanDetailsScreen() {
           Current Platform: {Platform.OS || 'unknown'}
         </Text>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
+// Lightweight row component — avoids inline object creation on every render
+function FeeRow({ label, value, bold = false }: { label: string; value: string | number; bold?: boolean }) {
+  const numVal = typeof value === 'string' ? parseFloat(value) : value;
+  return (
+    <View style={feeRowStyle}>
+      <Text style={[feeRowLabelStyle, bold && { fontWeight: '700' }]}>{label}:</Text>
+      <Text style={[feeRowValueStyle, bold && { fontWeight: '700' }]}>
+        K{isNaN(numVal) ? '0.00' : numVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </Text>
+    </View>
+  );
+}
+const feeRowStyle      = { flexDirection: 'row' as const, justifyContent: 'space-between' as const, marginBottom: 6 };
+const feeRowLabelStyle = { fontSize: 13, color: '#555', flex: 1 };
+const feeRowValueStyle = { fontSize: 13, fontWeight: '500' as const, textAlign: 'right' as const };
 
 const styles = StyleSheet.create({
   container: {
@@ -366,6 +432,21 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   required: {
-  color: 'red',
-},
+    color: 'red',
+  },
+  sectionDivider: {
+    backgroundColor: '#F0F0F0',
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginTop: 10,
+    marginBottom: 8,
+  },
+  sectionDividerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#555',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
 });

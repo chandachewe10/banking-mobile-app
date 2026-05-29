@@ -9,6 +9,7 @@ import {
   TextInput,
   StyleSheet,
   ScrollView,
+  KeyboardAvoidingView,
   TouchableOpacity,
   Platform,
   ActivityIndicator,
@@ -333,7 +334,18 @@ export default function BiodataScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={false}
+      >
         <Text style={[styles.title, { color: theme.textColor }]}>Personal Information</Text>
         <Text style={[styles.subtitle, { color: theme.textColor }]}>
           Please fill in your personal details
@@ -542,13 +554,34 @@ export default function BiodataScreen() {
         <View style={[styles.section, { backgroundColor: theme.cardBackgroundColor }]}>
           <Text style={[styles.sectionTitle, { color: theme.textColor }]}>Employment Information</Text>
 
-          <Text style={styles.label}>Occupation</Text>
-          <TextInput
-            style={[styles.input, { borderColor: theme.borderColor }]}
-            placeholder="Enter your occupation"
-            value={formData.occupation}
-            onChangeText={(v) => handleInputChange('occupation', v)}
-          />
+          <Text style={styles.label}>Occupation <Text style={styles.required}>*</Text></Text>
+          <View style={[styles.pickerContainer, { borderColor: theme.borderColor }]}>
+            <Picker
+              selectedValue={formData.occupation}
+              onValueChange={(v) => handleInputChange('occupation', v)}
+              style={styles.picker}
+              dropdownIconColor={theme.textColor}
+            >
+              <Picker.Item label="Select occupation" value="" />
+              <Picker.Item label="Government Employee" value="Government Employee" />
+              <Picker.Item label="Private Sector Employee" value="Private Sector Employee" />
+              <Picker.Item label="Self Employed / Business Owner" value="Self Employed" />
+              <Picker.Item label="Farmer / Agricultural Worker" value="Farmer" />
+              <Picker.Item label="Healthcare Professional" value="Healthcare Professional" />
+              <Picker.Item label="Teacher / Educator" value="Teacher" />
+              <Picker.Item label="Engineer / Technician" value="Engineer" />
+              <Picker.Item label="Lawyer / Legal Professional" value="Lawyer" />
+              <Picker.Item label="Accountant / Finance Professional" value="Accountant" />
+              <Picker.Item label="Sales / Marketing" value="Sales / Marketing" />
+              <Picker.Item label="Driver / Transport" value="Driver" />
+              <Picker.Item label="Security Personnel" value="Security Personnel" />
+              <Picker.Item label="Domestic Worker" value="Domestic Worker" />
+              <Picker.Item label="Student" value="Student" />
+              <Picker.Item label="Retired" value="Retired" />
+              <Picker.Item label="Unemployed" value="Unemployed" />
+              <Picker.Item label="Other" value="Other" />
+            </Picker>
+          </View>
 
           <Text style={styles.label}>Employer</Text>
           <TextInput
@@ -693,6 +726,7 @@ export default function BiodataScreen() {
           )}
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -749,4 +783,14 @@ const styles = StyleSheet.create({
   locationButtonText: { fontSize: 14, fontWeight: '600' },
   helperText: { fontSize: 12, color: '#666', marginBottom: 16 },
   required: { color: 'red' },
+  pickerContainer: {
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 52,
+    width: '100%',
+  },
 });

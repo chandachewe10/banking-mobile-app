@@ -6,6 +6,10 @@ import {
   Text,
   TextInput,
   StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
   TouchableOpacity,
   ActivityIndicator,
   Platform
@@ -65,7 +69,7 @@ export default function SignUpScreen() {
           text2: response.message || 'Check your email and SMS for your OTP code.'
         });
 
-        navigation.navigate('OTPVerification', { email: email.trim(), mobile: mobile.trim(), token });
+        navigation.navigate('OTPVerification', { email: email.trim(), mobile: mobile.trim(), token, flow: 'signup' });
       } else {
         Toast.show({
           type: 'error',
@@ -86,7 +90,19 @@ export default function SignUpScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={false}
+      >
         <Text style={[styles.title, { color: theme.textColor }]}>Sign Up</Text>
         <Text style={[styles.subtitle, { color: theme.textColor }]}>
           Enter your details to continue
@@ -126,7 +142,9 @@ export default function SignUpScreen() {
         </View>
 
 
-      </View>
+      </ScrollView>
+      </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -137,7 +155,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     padding: 20,
     justifyContent: 'center',
   },

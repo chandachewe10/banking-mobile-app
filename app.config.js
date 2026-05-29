@@ -27,6 +27,7 @@ export default {
     },
     package: 'com.yourbank.kyc',
     runtimeVersion: '1.0.0',
+    softwareKeyboardLayoutMode: 'pan',
   },
   web: {
     favicon: './assets/favicon.png',

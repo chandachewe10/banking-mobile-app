@@ -242,22 +242,14 @@ export default function DocumentUploadScreen() {
 
       const isValidSize = await checkFileSize(asset.uri);
       if (!isValidSize) {
-        Toast.show({
-          type: 'error',
-          text1: 'File too large',
-          text2: 'Please select a file smaller than 10MB'
-        });
+        Toast.show({ type: 'error', text1: 'File too large', text2: 'Please select a file smaller than 10MB' });
         return;
       }
 
       setBankStatement(asset.uri);
     } catch (error) {
       console.error('Error picking bank statement PDF:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Error selecting bank statement PDF',
-        text2: 'Please try again'
-      });
+      Toast.show({ type: 'error', text1: 'Error selecting bank statement PDF', text2: 'Please try again' });
     }
   };
 
@@ -367,7 +359,13 @@ export default function DocumentUploadScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={false}
+      >
         <Text style={[styles.title, { color: theme.textColor }]}>Document Upload</Text>
         <Text style={[styles.subtitle, { color: theme.textColor }]}>
           Please upload the required documents (max 10MB each)
@@ -413,7 +411,7 @@ export default function DocumentUploadScreen() {
             style={[styles.uploadButton, { backgroundColor: bankStatement ? theme.successColor : theme.primaryColor }]}
             onPress={handlePickBankStatement}
           >
-            <Text style={styles.buttonText}>{bankStatement ? 'Uploaded' : 'Upload PDF'}</Text>
+            <Text style={styles.buttonText}>{bankStatement ? '✓ Uploaded' : 'Upload PDF'}</Text>
           </TouchableOpacity>
           {bankStatement && <Text style={styles.fileInfo}>PDF selected</Text>}
         </View>

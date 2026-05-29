@@ -20,8 +20,11 @@ function RootStack() {
   return (
     <Stack.Navigator 
       initialRouteName="Splash"
+      detachInactiveScreens={false}
       screenOptions={{
-        headerShown: false
+        headerShown: false,
+        animation: 'fade',
+        contentStyle: { backgroundColor: '#FFFFFF' },
       }}
     >
       <Stack.Screen name="Dashboard" component={DashboardScreen} />

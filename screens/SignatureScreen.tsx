@@ -1,11 +1,11 @@
 import React, { useRef, useState } from "react";
-import { toast } from "sonner-native";
 import Toast from 'react-native-toast-message';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  ScrollView,
   Platform,
   Image as RNImage,
   ActivityIndicator,
@@ -28,6 +28,8 @@ export default function SignatureScreen() {
   const theme = useTheme();
   const { email, token } = route.params;
   const [signatureUri, setSignatureUri] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
   const sigCanvasRef = useRef<any>(null);
   const signatureRef = useRef<any>(null);
   const [loading, setLoading] = useState(false);
@@ -40,6 +42,10 @@ export default function SignatureScreen() {
 
   /** --- Handlers --- **/
   const handleSubmit = async () => {
+    if (!termsAccepted) {
+      Toast.show({ type: 'error', text1: 'Please accept the Terms & Conditions first' });
+      return;
+    }
     if (!signatureUri) {
       Toast.show({
         type: 'error',
@@ -82,6 +88,7 @@ export default function SignatureScreen() {
       .toDataURL("image/png");
     if (dataUrl) {
       setSignatureUri(dataUrl);
+      setScrollEnabled(true);
       Toast.show({
         type: 'success',
         text1: "Signature saved"
@@ -98,6 +105,7 @@ export default function SignatureScreen() {
   const handleOK = (sig: string) => {
     console.log("Signature saved as base64");
     setSignatureUri(sig);
+    setScrollEnabled(true);
     Toast.show({
       type: 'success',
       text1: "Signature saved"
@@ -125,10 +133,51 @@ export default function SignatureScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        scrollEnabled={scrollEnabled}
+        removeClippedSubviews={false}
+      >
         {/* Simple header */}
         <Text style={[styles.title, { color: theme.textColor }]}>
-          Please Sign Below
+          Terms &amp; Conditions
+        </Text>
+
+        {/* Terms & Conditions declaration */}
+        <View style={[styles.termsBox, { borderColor: theme.borderColor, backgroundColor: theme.cardBackgroundColor || '#F9F9F9' }]}>
+          <Text style={[styles.termsHeading, { color: theme.textColor }]}>By signing below, I confirm that:</Text>
+          {[
+            'I authorise the bank to store and process my data for KYC compliance.',
+            'I agree to be contacted via email/SMS for verification purposes.',
+            'Submission of this application does not guarantee loan approval.',
+            'This information is only indicative and a separate loan agreement will be signed after approval based on the approved amount and the bank\'s specific terms.',
+            'I certify that all information provided is accurate and complete.',
+          ].map((clause, i) => (
+            <Text key={i} style={[styles.termsClauses, { color: theme.textColor }]}>• {clause}</Text>
+          ))}
+
+          {/* Checkbox */}
+          <TouchableOpacity
+            style={styles.checkboxRow}
+            onPress={() => setTermsAccepted(!termsAccepted)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox, {
+              borderColor: theme.primaryColor,
+              backgroundColor: termsAccepted ? theme.primaryColor : 'transparent',
+            }]}>
+              {termsAccepted && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <Text style={[styles.checkboxLabel, { color: theme.textColor }]}>
+              I agree to the Terms &amp; Conditions
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Signature Area */}
+        <Text style={[styles.title, { color: theme.textColor, marginTop: 20 }]}>
+          E-Signature
         </Text>
 
         {/* Signature Area - Takes most of the screen */}
@@ -153,6 +202,8 @@ export default function SignatureScreen() {
               ref={sigCanvasRef}
               penColor="black"
               backgroundColor="white"
+              onBegin={() => setScrollEnabled(false)}
+              onEnd={() => setScrollEnabled(true)}
               canvasProps={{
                 width: Dimensions.get("window").width - 40,
                 height: signaturePadHeight - 20,
@@ -164,6 +215,8 @@ export default function SignatureScreen() {
               ref={signatureRef}
               onOK={handleOK}
               onClear={handleClearNative}
+              onBegin={() => setScrollEnabled(false)}
+              onEnd={() => setScrollEnabled(true)}
               descriptionText="Sign in the box"
               clearText=""
               confirmText=""
@@ -210,10 +263,10 @@ export default function SignatureScreen() {
             <TouchableOpacity
               style={[
                 styles.submitButton,
-                { backgroundColor: theme.successColor },
+                { backgroundColor: termsAccepted ? theme.successColor : '#AAA' },
               ]}
               onPress={handleSubmit}
-              disabled={loading}
+              disabled={loading || !termsAccepted}
             >
               {loading ? (
                 <ActivityIndicator color="#FFF" />
@@ -231,7 +284,7 @@ export default function SignatureScreen() {
             : "Draw your signature in the box above, then press 'Save Signature'"
           }
         </Text>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -242,9 +295,48 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: { 
-    flex: 1,
     padding: 20,
-    justifyContent: 'space-between',
+    paddingBottom: 40,
+  },
+  termsBox: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 16,
+    marginBottom: 8,
+  },
+  termsHeading: {
+    fontWeight: 'bold',
+    fontSize: 15,
+    marginBottom: 10,
+  },
+  termsClauses: {
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 6,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 14,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderWidth: 2,
+    borderRadius: 4,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkmark: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
   },
   title: { 
     fontSize: 22, 

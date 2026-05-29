@@ -39,15 +39,15 @@ export default function DashboardScreen() {
 
         {/* Returning User */}
         <View style={[styles.card, { backgroundColor: theme.cardBackgroundColor }]}>
-          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Returning User</Text>
+          <Text style={[styles.cardTitle, { color: theme.textColor }]}>Resume Application</Text>
           <Text style={[styles.cardDescription, { color: theme.textColor }]}>
-            Already registered? Login with your mobile number to resume or reapply.
+            Already registered? Enter your mobile number to continue from where you left off.
           </Text>
           <TouchableOpacity
             style={[styles.button, { backgroundColor: theme.secondaryColor }]}
             onPress={() => navigation.navigate('Login')}
           >
-            <Text style={styles.buttonText}>Login</Text>
+            <Text style={styles.buttonText}>Resume Application</Text>
           </TouchableOpacity>
         </View>
 

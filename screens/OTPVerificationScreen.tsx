@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { verifyOtp, resendOtp } from '../api';
+import { verifyOtp, resendOtp, applicationStatus } from '../api';
 import Toast from 'react-native-toast-message';
 import { 
   Text, 
   TextInput, 
   StyleSheet, 
   View,
+  ScrollView,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
   TouchableOpacity,
   ActivityIndicator,
   Platform
@@ -23,23 +27,59 @@ const inputs = Array(6)
    const navigation = useNavigation();
   const route = useRoute();
   const theme = useTheme();
-  const { email, mobile, token } = route.params;
+  const { email, mobile, token, flow } = route.params as {
+    email: string; mobile: string; token: string; flow?: 'signup' | 'login';
+  };
+  const isResumeFlow = flow === 'login';
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resumeLoading, setResumeLoading] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(60);
   const [resendLoading, setResendLoading] = useState(false);
 
 
   
 
+  /** Navigate to the correct screen based on where the user left off */
+  const resumeToStep = async (verifiedToken: string) => {
+    setResumeLoading(true);
+    try {
+      const statusRes = await applicationStatus(verifiedToken);
+      const step: string = statusRes.data?.step ?? 'biodata';
+
+      const stepRoutes: Record<string, () => void> = {
+        biodata:     () => (navigation as any).navigate('Biodata',         { email, mobile, token: verifiedToken }),
+        documents:   () => (navigation as any).navigate('DocumentUpload',  { email, token: verifiedToken }),
+        loan_details:() => (navigation as any).navigate('LoanDetails',     { email, token: verifiedToken }),
+        completed:   () => (navigation as any).navigate('Confirmation',    { email, token: verifiedToken, caseNumber: statusRes.data?.case_number }),
+      };
+
+      const friendlyStep: Record<string, string> = {
+        biodata:      'Personal Details',
+        documents:    'Document Upload',
+        loan_details: 'Loan Details',
+        completed:    'Application Submitted',
+      };
+
+      Toast.show({
+        type: 'success',
+        text1: 'Welcome back!',
+        text2: `Resuming at: ${friendlyStep[step] ?? step}`,
+      });
+
+      (stepRoutes[step] ?? stepRoutes.biodata)();
+    } catch {
+      Toast.show({ type: 'error', text1: 'Could not load your progress. Starting from Personal Details.' });
+      (navigation as any).navigate('Biodata', { email, mobile, token: verifiedToken });
+    } finally {
+      setResumeLoading(false);
+    }
+  };
+
   const handleVerify = async () => {
   const fullOtp = otpDigits.join('');
   if (fullOtp.length < 6) {
-    Toast.show({
-      type: 'error',
-      text1: 'Please enter complete OTP'
-    });
-    console.log('Please enter complete OTP');
+    Toast.show({ type: 'error', text1: 'Please enter all 6 digits of the OTP' });
     return;
   }
 
@@ -49,12 +89,20 @@ const inputs = Array(6)
     const response = await verifyOtp(fullOtp, email, token);
 
     if (response.success) {
-      Toast.show({
-        type: 'success',
-        text1: 'OTP Verified',
-        text2: 'Identity confirmed. Proceeding to your details.'
-      });
-      navigation.navigate('Biodata', { email, mobile, token });
+      const verifiedToken = response.data?.token ?? token;
+
+      if (isResumeFlow) {
+        // Returning user — check where they left off
+        await resumeToStep(verifiedToken);
+      } else {
+        // New user — always start at Biodata
+        Toast.show({
+          type: 'success',
+          text1: 'OTP Verified',
+          text2: 'Identity confirmed. Proceeding to your details.'
+        });
+        (navigation as any).navigate('Biodata', { email, mobile, token: verifiedToken });
+      }
     } else {
       Toast.show({
         type: 'error',
@@ -122,12 +170,39 @@ useEffect(() => {
   return () => clearInterval(interval);
 }, [resendSeconds]);
 
+  if (resumeLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.resumeOverlay}>
+          <ActivityIndicator size="large" color={theme.primaryColor} />
+          <Text style={[styles.resumeText, { color: theme.textColor }]}>
+            Loading your progress...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={false}
+      >
         <Text style={[styles.title, { color: theme.textColor }]}>Verify OTP</Text>
         <Text style={[styles.subtitle, { color: theme.textColor }]}>
-          Enter the OTP sent to {email} and {mobile}
+          {isResumeFlow
+            ? `Enter the OTP sent to ${email} to resume your application`
+            : `Enter the OTP sent to ${email} and ${mobile}`}
         </Text>
         <Text style={[styles.hint, { color: theme.textColor }]}>
           You can resend the OTP after 60 seconds.
@@ -209,7 +284,9 @@ useEffect(() => {
         <Text style={styles.platformInfo}>
           Current Platform: {Platform.OS || 'unknown'}
         </Text>
-      </View>
+      </ScrollView>
+      </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -220,7 +297,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     padding: 20,
     justifyContent: 'center',
   },
@@ -293,5 +370,16 @@ otpBox: {
   resendButtonText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  resumeOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+  },
+  resumeText: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginTop: 12,
   },
 });

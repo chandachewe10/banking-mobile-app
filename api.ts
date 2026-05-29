@@ -247,10 +247,10 @@ export async function personalDetails(biodata: any, token: string): Promise<ApiR
 }
 
 export async function documentsUpload(
-  idFront: string,
-  idBack: string,
-  selfie: string,
-  bankStatement: string,
+  idFront: string | null,
+  idBack: string | null,
+  selfie: string | null,
+  bankStatement: string | null,
   payslip1: string | null,
   payslip2: string | null,
   payslip3: string | null,
@@ -260,13 +260,13 @@ export async function documentsUpload(
   console.log(`Saving Docs for user: ${email}, platform: ${currentPlatform}`);
 
   const formData = new FormData();
-  formData.append('idFront', idFront);
-  formData.append('idBack', idBack);
-  formData.append('selfie', selfie);
-  formData.append('bankStatement', bankStatement);
-  if (payslip1) formData.append('payslip1', payslip1);
-  if (payslip2) formData.append('payslip2', payslip2);
-  if (payslip3) formData.append('payslip3', payslip3);
+  if (idFront)       formData.append('idFront', idFront);
+  if (idBack)        formData.append('idBack', idBack);
+  if (selfie)        formData.append('selfie', selfie);
+  if (bankStatement) formData.append('bankStatement', bankStatement);
+  if (payslip1)      formData.append('payslip1', payslip1);
+  if (payslip2)      formData.append('payslip2', payslip2);
+  if (payslip3)      formData.append('payslip3', payslip3);
   formData.append('email', email);
 
   try {
@@ -299,19 +299,26 @@ export async function documentsUpload(
 export async function loanDetails(
   amount: string,
   purpose: string,
-  interestRate: any,
+  interestRate: string,        // integer percentage, e.g. "32" (not decimal "0.32")
   tenure: string,
   arrangementFee: string,
   processingFee: string,
-  insuranceFee: string,
+  insuranceFee: string,        // credit life insurance (4.5 %)
   totalInterestFee: string,
   monthlyRepayment: string,
   disbursedAmount: string,
   totalRepayable: string,
+  creditLifeFee: string,
+  insuranceLevy: string,
+  creditReferenceFee: string,
+  collateralFee: string,
+  documentationFee: string,
+  adminFeePerMonth: string,
+  disbursementMethod: string,
   email: string,
   token: string
 ): Promise<ApiResponse> {
-  console.log(`Saving loan details for user: ${email}, platform: ${currentPlatform}`);
+  console.log(`Saving loan details for: ${email}, platform: ${currentPlatform}`);
 
   const formData = new FormData();
   formData.append('amount', amount);
@@ -325,6 +332,13 @@ export async function loanDetails(
   formData.append('monthlyRepayment', monthlyRepayment);
   formData.append('disbursedAmount', disbursedAmount);
   formData.append('totalRepayable', totalRepayable);
+  formData.append('creditLifeFee', creditLifeFee);
+  formData.append('insuranceLevy', insuranceLevy);
+  formData.append('creditReferenceFee', creditReferenceFee);
+  formData.append('collateralFee', collateralFee);
+  formData.append('documentationFee', documentationFee);
+  formData.append('adminFeePerMonth', adminFeePerMonth);
+  formData.append('disbursementMethod', disbursementMethod);
   formData.append('email', email);
 
   try {

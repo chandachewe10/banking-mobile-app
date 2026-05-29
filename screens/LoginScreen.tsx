@@ -5,8 +5,13 @@ import {
   Text,
   TextInput,
   StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
   TouchableOpacity,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -49,6 +54,7 @@ export default function LoginScreen() {
           email: response.data?.email ?? '',
           mobile: mobile.trim(),
           token: response.data?.token ?? '',
+          flow: 'login',
         });
       } else {
         Toast.show({
@@ -70,10 +76,22 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={[styles.title, { color: theme.textColor }]}>Login</Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={false}
+      >
+        <Text style={[styles.title, { color: theme.textColor }]}>Resume Application</Text>
         <Text style={[styles.subtitle, { color: theme.textColor }]}>
-          Enter your registered mobile number to receive an OTP
+          Enter your registered mobile number. We'll send an OTP to verify your identity and take you back to where you left off.
         </Text>
 
         <View style={styles.form}>
@@ -109,14 +127,16 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
+      </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  content: { flex: 1, padding: 20, justifyContent: 'center' },
+  content: { flexGrow: 1, padding: 20, justifyContent: 'center' },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 10 },
   subtitle: { fontSize: 16, marginBottom: 30, lineHeight: 22 },
   form: { marginBottom: 20 },
